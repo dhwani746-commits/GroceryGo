@@ -6,6 +6,9 @@ import { createClient } from '@/lib/supabase/client';
 import { useProducts } from '@/lib/store/products';
 import { ProductCard } from '@/components/ProductCard';
 import { Search as SearchIcon } from 'lucide-react';
+import { Header } from '@/components/Header';
+import { RelatedProducts } from '@/components/RelatedProducts';
+import Link from 'next/link';
 
 interface Product {
   id: string;
@@ -77,46 +80,53 @@ export default function SearchPage() {
   }, [query, cachedProducts]);
 
   return (
-    <div className="min-h-screen bg-neutral-50 pt-32">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-neutral-900 mb-2">
-            Search Results
-          </h1>
-          <p className="text-neutral-600">
-            {query ? `Results for "${query}"` : 'Enter a search term'}
-          </p>
-        </div>
-
-        {loading ? (
-          <div className="text-center py-12">
-            <p className="text-neutral-600">Searching...</p>
-          </div>
-        ) : products.length === 0 ? (
-          <div className="text-center py-16">
-            <SearchIcon size={48} className="mx-auto text-neutral-300 mb-4" />
-            <p className="text-neutral-600 text-lg">
-              {query ? 'No products found matching your search' : 'Start typing to search'}
+    <>
+      <Header />
+      <div className="min-h-screen bg-neutral-50 pt-32">
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <Link href="/" className="text-blue-600 hover:text-blue-700 mb-6">
+            ← Back to Products
+          </Link>
+          <div className="mb-8">
+            <h1 className="text-2xl font-bold text-neutral-900 mb-2">
+              Search Results
+            </h1>
+            <p className="text-neutral-600">
+              {query ? `Results for "${query}"` : 'Enter a search term'}
             </p>
-            {query && (
-              <button
-                onClick={() => router.push('/')}
-                className="mt-4 text-brand-primary-600 hover:text-brand-primary-500 font-medium"
-              >
-                Browse all products
-              </button>
-            )}
           </div>
-        ) : (
-          <div className="flex flex-row overflow-x-auto gap-4 lg:grid lg:grid-cols-4 lg:gap-6 pb-2">
-            {products.map((product) => (
-              <div key={product.id} className="flex-shrink-0 w-64 md:w-72 lg:w-auto">
-                <ProductCard product={product} />
-              </div>
-            ))}
-          </div>
-        )}
+
+          {loading ? (
+            <div className="text-center py-12">
+              <p className="text-neutral-600">Searching...</p>
+            </div>
+          ) : products.length === 0 ? (
+            <div className="text-center py-16">
+              <SearchIcon size={48} className="mx-auto text-neutral-300 mb-4" />
+              <p className="text-neutral-600 text-lg">
+                {query ? 'No products found matching your search' : 'Start typing to search'}
+              </p>
+              {query && (
+                <button
+                  onClick={() => router.push('/')}
+                  className="mt-4 text-brand-primary-600 hover:text-brand-primary-500 font-medium"
+                >
+                  Browse all products
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-row overflow-x-auto gap-4 lg:grid lg:grid-cols-4 lg:gap-6 pb-2">
+              {products.map((product) => (
+                <div key={product.id} className="flex-shrink-0 w-64 md:w-72 lg:w-auto">
+                  <ProductCard product={product} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+      <RelatedProducts productId={products[0]?.id} category={products[0]?.category || null} />
+      </>
   );
 }

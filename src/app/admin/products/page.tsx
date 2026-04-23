@@ -1,3 +1,12 @@
+import { ProductsList } from '@/components/admin/ProductsList';
+
+export default function AdminProductsPage() {
+  return (
+    <div className="p-8">
+      <ProductsList />
+    </div>
+  );
+}
 'use client';
 
 import { ProductsList } from '@/components/admin/ProductsList';
