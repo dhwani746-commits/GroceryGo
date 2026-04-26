@@ -3,14 +3,15 @@ import { NextResponse } from 'next/server';
 
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = await createClient();
     const { data, error } = await supabase
       .from('products')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (error) throw error;
@@ -23,9 +24,10 @@ export async function GET(
 
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = await createClient();
     const body = await req.json();
 
@@ -42,7 +44,7 @@ export async function PUT(
         is_visible: body.is_visible !== false,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', params.id)
+      .eq('id', id)
       .select();
 
     if (error) throw error;
@@ -55,14 +57,15 @@ export async function PUT(
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = await createClient();
     const { data, error } = await supabase
       .from('products')
-      .update({ is_deleted: true })
-      .eq('id', params.id)
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id)
       .select();
 
     if (error) throw error;
@@ -70,5 +73,31 @@ export async function DELETE(
   } catch (error) {
     console.error('Error deleting product:', error);
     return NextResponse.json({ error: 'Failed to delete product' }, { status: 500 });
+  }
+}
+
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const supabase = await createClient();
+    const body = await req.json();
+
+    const { data, error } = await supabase
+      .from('products')
+      .update({
+        ...body,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select();
+
+    if (error) throw error;
+    return NextResponse.json(data[0]);
+  } catch (error) {
+    console.error('Error partially updating product:', error);
+    return NextResponse.json({ error: 'Failed to update product partially' }, { status: 500 });
   }
 }

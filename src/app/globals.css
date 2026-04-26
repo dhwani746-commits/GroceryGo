@@ -68,6 +68,9 @@
   --color-status-info-500: #2172C7;
   --color-status-info-50: #EBF4FF;
 
+  /* Color for Dahboard Sidebar */
+  --color-sidebar-bg: #F2F3FC;
+
   /* Custom Text Sizes */
   --text-xs: 11px;
   --text-sm: 13px;

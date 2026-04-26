@@ -6,8 +6,8 @@ export async function GET() {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from('products')
-      .select('*')
-      .eq('is_deleted', false)
+      .select('*, category:categories(name)')
+      .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
