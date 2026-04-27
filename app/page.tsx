@@ -1,6 +1,6 @@
-import { Header } from '@/components/Header';
-import { Categories } from '@/components/Categories';
-import { ProductSegments } from '@/components/ProductSegments';
+import { Header } from '@/components/shared/Header';
+import { Categories } from '@/components/store/Categories';
+import { ProductSegments } from '@/components/store/ProductSegments';
 
 export default function Home() {
   return (

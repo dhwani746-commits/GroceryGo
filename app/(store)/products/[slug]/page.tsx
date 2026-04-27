@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { Header } from '@/components/Header';
-import { ProductGallery } from '@/components/ProductGallery';
-import { RelatedProducts } from '@/components/RelatedProducts';
+import { Header } from '@/components/shared/Header';
+import { ProductGallery } from '@/components/store/ProductGallery';
+import { RelatedProducts } from '@/components/store/RelatedProducts';
 import { createClient } from '@/lib/supabase/client';
 import { useCart } from '@/lib/store/cart';
 

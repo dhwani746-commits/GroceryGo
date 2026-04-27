@@ -1,4 +1,4 @@
-import { AuthForm } from '@/components/AuthForm';
+import { AuthForm } from '@/components/store/AuthForm';
 
 export default function AdminLoginPage() {
   return (
