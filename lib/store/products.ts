@@ -8,6 +8,7 @@ export interface Product {
   description: string | null;
   image_urls: string[] | null;
   stock_quantity: number;
+  category: string | null;
 }
 
 interface ProductStore {

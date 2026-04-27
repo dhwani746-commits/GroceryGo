@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/context';
 import { useCart } from '@/lib/store/cart';
 import { useEffect, useState } from 'react';
-import { ShoppingCart, UserCircle, LogIn, Clock, MapPin, Mail, LogOut, Search, Menu, X } from 'lucide-react';
+import { ShoppingCart, LogIn, Search, Menu, X, UserCircle, ChevronDown, Clock, MapPin, Mail, LogOut, BarChart3, Package } from 'lucide-react';
 import { CartOverlay } from '@/components/store/CartOverlay';
+import { MenuOverlay } from './MenuOverlay';
 import { Logo } from './Logo';
 
 export function Header() {
@@ -71,7 +72,15 @@ export function Header() {
         
         <div className="flex gap-3 items-center ml-auto">
           <button
-            onClick={() => setIsCartOpen(true)}
+            onClick={() => {
+              if (window.innerWidth >= 1024) {
+                // Desktop: open overlay
+                setIsCartOpen(true);
+              } else {
+                // Mobile/Tablet: navigate to cart page
+                router.push('/cart');
+              }
+            }}
             className="relative text-neutral-700 hover:text-neutral-900 transition flex items-center justify-center h-10 w-10 rounded-md hover:bg-neutral-100"
           >
             <ShoppingCart size={20} strokeWidth={1.5} />
@@ -83,19 +92,121 @@ export function Header() {
           </button>
 
           {user && profile ? (
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="text-neutral-700 hover:text-neutral-900 transition flex items-center justify-center h-10 w-10 rounded-md hover:bg-neutral-100"
-            >
-              {isMenuOpen ? <X size={20} strokeWidth={1.5} /> : <Menu size={20} strokeWidth={1.5} />}
-            </button>
+            <> 
+              {/* mobile menu toggle */}
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="text-neutral-700 hover:text-neutral-900 transition flex items-center justify-center h-10 w-10 rounded-md hover:bg-neutral-100 lg:hidden"
+              >
+                {isMenuOpen ? <X size={20} strokeWidth={1.5} /> : <Menu size={20} strokeWidth={1.5} />}
+              </button>
+
+              {/* desktop account dropdown */}
+              <div className="hidden lg:block relative" data-user-menu>
+                <button
+                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-neutral-100 transition h-10 text-neutral-700"
+                >
+                  <UserCircle size={20} strokeWidth={1.5} />
+                  <span className="text-sm font-medium">{profile.full_name}</span>
+                  <ChevronDown size={16} strokeWidth={1.5} className={`transition ${isUserMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {isUserMenuOpen && (
+                  <div className="absolute right-0 mt-1 w-48 bg-white border border-neutral-200 rounded-md shadow-lg z-50">
+                    {isAdmin ? (
+                      <>
+                        <Link
+                          href="/admin/dashboard"
+                          className="flex items-center gap-3 px-4 py-3 text-sm text-neutral-700 hover:bg-neutral-100 transition border-b border-neutral-100"
+                          onClick={() => setIsUserMenuOpen(false)}
+                        >
+                          <BarChart3 size={16} strokeWidth={1.5} className="text-neutral-500" />
+                          Dashboard
+                        </Link>
+                        <Link
+                          href="/admin/products"
+                          className="flex items-center gap-3 px-4 py-3 text-sm text-neutral-700 hover:bg-neutral-100 transition border-b border-neutral-100"
+                          onClick={() => setIsUserMenuOpen(false)}
+                        >
+                          <Package size={16} strokeWidth={1.5} className="text-neutral-500" />
+                          Products
+                        </Link>
+                        <Link
+                          href="/admin/orders"
+                          className="flex items-center gap-3 px-4 py-3 text-sm text-neutral-700 hover:bg-neutral-100 transition border-b border-neutral-100"
+                          onClick={() => setIsUserMenuOpen(false)}
+                        >
+                          <Clock size={16} strokeWidth={1.5} className="text-neutral-500" />
+                          Orders
+                        </Link>
+                      </>
+                    ) : (
+                      <>
+                        <Link
+                          href="/account"
+                          className="flex items-center gap-3 px-4 py-3 text-sm text-neutral-700 hover:bg-neutral-100 transition border-b border-neutral-100"
+                          onClick={() => setIsUserMenuOpen(false)}
+                        >
+                          <UserCircle size={16} strokeWidth={1.5} className="text-neutral-500" />
+                          Your Account
+                        </Link>
+                        <Link
+                          href="/orders"
+                          className="flex items-center gap-3 px-4 py-3 text-sm text-neutral-700 hover:bg-neutral-100 transition border-b border-neutral-100"
+                          onClick={() => setIsUserMenuOpen(false)}
+                        >
+                          <Clock size={16} strokeWidth={1.5} className="text-neutral-500" />
+                          Your Orders
+                        </Link>
+                        <Link
+                          href="/addresses"
+                          className="flex items-center gap-3 px-4 py-3 text-sm text-neutral-700 hover:bg-neutral-100 transition border-b border-neutral-100"
+                          onClick={() => setIsUserMenuOpen(false)}
+                        >
+                          <MapPin size={16} strokeWidth={1.5} className="text-neutral-500" />
+                          Addresses
+                        </Link>
+                        <Link
+                          href="/contact"
+                          className="flex items-center gap-3 px-4 py-3 text-sm text-neutral-700 hover:bg-neutral-100 transition border-b border-neutral-100"
+                          onClick={() => setIsUserMenuOpen(false)}
+                        >
+                          <Mail size={16} strokeWidth={1.5} className="text-neutral-500" />
+                          Contact Us
+                        </Link>
+                      </>
+                    )}
+                    <button
+                      onClick={() => { setIsUserMenuOpen(false); handleSignOut(); }}
+                      disabled={signingOut}
+                      className="w-full flex items-center gap-3 text-left px-4 py-3 text-sm text-status-danger-700 hover:bg-status-danger-50 transition disabled:opacity-50"
+                    >
+                      <LogOut size={16} strokeWidth={1.5} />
+                      {signingOut ? 'Signing out...' : 'Sign Out'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
           ) : (
-            <Link
-              href="/auth/login"
-              className="text-neutral-700 hover:text-neutral-900 transition flex items-center justify-center h-10 w-10 rounded-md hover:bg-neutral-100"
-            >
-              <LogIn size={20} strokeWidth={1.5} />
-            </Link>
+            <>
+              {/* mobile login icon */}
+              <Link
+                href="/auth/login"
+                className="text-neutral-700 hover:text-neutral-900 transition flex items-center justify-center h-10 w-10 rounded-md hover:bg-neutral-100 lg:hidden"
+              >
+                <LogIn size={20} strokeWidth={1.5} />
+              </Link>
+
+              {/* desktop login button */}
+              <Link
+                href="/auth/login"
+                className="hidden lg:inline-flex bg-brand-accent-500 text-white px-4 py-2 rounded-md hover:bg-brand-primary-500 transition font-medium h-10 items-center"
+              >
+                Log In
+              </Link>
+            </>
           )}
         </div>
       </div>
@@ -116,56 +227,20 @@ export function Header() {
         </form>
       </div>
 
-      {/* Mobile Menu Dropdown */}
-      {isMenuOpen && user && profile && (
-        <div className="max-w-[90rem] mx-auto px-4 pb-3 border-t border-neutral-200 bg-neutral-50">
-          <Link
-            href="/account"
-            className="flex items-center gap-3 px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-100 transition rounded-md"
-            onClick={() => setIsMenuOpen(false)}
-          >
-            <UserCircle size={16} strokeWidth={1.5} className="text-neutral-500" />
-            Your Account
-          </Link>
-          <Link
-            href="/orders"
-            className="flex items-center gap-3 px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-100 transition rounded-md"
-            onClick={() => setIsMenuOpen(false)}
-          >
-            <Clock size={16} strokeWidth={1.5} className="text-neutral-500" />
-            Your Orders
-          </Link>
-          <Link
-            href="/addresses"
-            className="flex items-center gap-3 px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-100 transition rounded-md"
-            onClick={() => setIsMenuOpen(false)}
-          >
-            <MapPin size={16} strokeWidth={1.5} className="text-neutral-500" />
-            Addresses
-          </Link>
-          <Link
-            href="/contact"
-            className="flex items-center gap-3 px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-100 transition rounded-md"
-            onClick={() => setIsMenuOpen(false)}
-          >
-            <Mail size={16} strokeWidth={1.5} className="text-neutral-500" />
-            Contact Us
-          </Link>
-          <button
-            onClick={() => {
-              setIsMenuOpen(false);
-              handleSignOut();
-            }}
-            disabled={signingOut}
-            className="w-full flex items-center gap-3 text-left px-3 py-2 text-sm text-status-danger-700 hover:bg-status-danger-50 transition rounded-md disabled:opacity-50"
-          >
-            <LogOut size={16} strokeWidth={1.5} />
-            {signingOut ? 'Signing out...' : 'Sign Out'}
-          </button>
-        </div>
-      )}
+      {/* Mobile Menu Overlay */}
+      <MenuOverlay
+        isOpen={isMenuOpen}
+        onClose={() => setIsMenuOpen(false)}
+        user={!!(user && profile)}
+        isAdmin={isAdmin}
+        onSignOut={handleSignOut}
+        signingOut={signingOut}
+      />
 
-      <CartOverlay isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+      {/* Desktop Cart Overlay */}
+      <div className="hidden lg:block">
+        <CartOverlay isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+      </div>
     </header>
   );
 }

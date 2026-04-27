@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth/context';
-import { Header } from '@/components/Header';
+import { Header } from '@/components/shared/Header';
 
 type Address = {
   id: string;

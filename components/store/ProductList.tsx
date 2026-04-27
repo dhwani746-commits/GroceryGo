@@ -27,13 +27,15 @@ export function ProductList() {
 
     async function fetchProducts() {
       try {
-        const { data, error: fetchError } = await supabase
+        let query = supabase
           .from('products')
-          .select('id, name, slug, price, description, image_urls, stock_quantity')
+          .select('id, name, slug, price, description, image_urls, stock_quantity, category')
           .eq('is_visible', true)
           .eq('is_deleted', false)
           .order('created_at', { ascending: false })
           .limit(30);
+
+        const { data, error: fetchError } = await query;
 
         if (fetchError) throw fetchError;
         setProducts(data || []);
