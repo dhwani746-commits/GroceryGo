@@ -76,7 +76,7 @@ export function ProductCard({ product }: { product: Product }) {
           <p className="text-xs text-neutral-600 line-clamp-2 mt-1 flex-1">{product.description}</p>
           
           <div className="flex justify-between items-center mt-4 mb-4">
-            <span className="text-base font-semibold text-brand-primary-600">₹ {parseFloat(product.price).toFixed(2)}</span>
+            <span className="text-base font-semibold text-brand-primary-600">₹ {(Number(product.price) / 100).toFixed(2)}</span>
             {product.stock_quantity === 0 && (
               <div className="flex items-center gap-1 text-xs font-medium text-status-danger-700 bg-status-danger-50 px-2 py-1 rounded-sm">
                 <CircleSlash size={14} strokeWidth={1.5} />

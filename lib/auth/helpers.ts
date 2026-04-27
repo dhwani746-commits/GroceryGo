@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { UserService } from '@/lib/services/user.service';
 
 export async function getSession() {
   const supabase = await createClient();
@@ -20,19 +21,12 @@ export async function getUserProfile() {
   const user = await getCurrentUser();
   if (!user) return null;
 
-  const supabase = await createClient();
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
-
-  return profile;
+  return await UserService.getProfile(user.id);
 }
 
 export async function isAdmin() {
   const profile = await getUserProfile();
-  return profile?.role === 'admin';
+  return profile?.role === 'ADMIN';
 }
 
 export async function isAuthenticated() {

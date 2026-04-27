@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+
 import { useProducts } from '@/lib/store/products';
 import { ProductCard } from './ProductCard';
 
@@ -15,41 +15,25 @@ interface Product {
   stock_quantity: number;
 }
 
+import { useQuery } from '@tanstack/react-query';
+import { getAllProducts } from '@/lib/api/products';
+
 export function ProductList() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const supabase = createClient();
   const setStoreProducts = useProducts((state) => state.setProducts);
+  
+  const { data, isLoading: loading, error: fetchError } = useQuery({
+    queryKey: ['products'],
+    queryFn: getAllProducts,
+  });
+
+  const products = data || [];
+  const error = fetchError ? 'Failed to load products' : '';
 
   useEffect(() => {
-    setLoading(true);
-
-    async function fetchProducts() {
-      try {
-        let query = supabase
-          .from('products')
-          .select('id, name, slug, price, description, image_urls, stock_quantity, category')
-          .eq('is_visible', true)
-          .eq('is_deleted', false)
-          .order('created_at', { ascending: false })
-          .limit(30);
-
-        const { data, error: fetchError } = await query;
-
-        if (fetchError) throw fetchError;
-        setProducts(data || []);
-        setStoreProducts(data || []);
-      } catch (err) {
-        setError('Failed to load products');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
+    if (data) {
+      setStoreProducts(data);
     }
-
-    fetchProducts();
-  }, [setStoreProducts]);
+  }, [data, setStoreProducts]);
 
   if (loading) return <div className="text-center py-8 text-neutral-600">Loading products...</div>;
   if (error) return <div className="text-center py-8 text-status-danger-600">{error}</div>;

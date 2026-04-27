@@ -44,7 +44,7 @@ export const useCart = create<CartStore>()(
   clear: () => set({ items: [] }),
   getTotalPrice: () => {
     const price = get().items.reduce((total, item) => {
-      const p = typeof item.price === 'string' ? parseFloat(item.price) : item.price;
+      const p = Number(item.price) / 100;
       return total + p * item.quantity;
     }, 0);
     return price;

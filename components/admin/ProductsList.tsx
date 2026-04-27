@@ -135,7 +135,7 @@ export function ProductsList() {
       if (statusFilter === 'inactive' && product.is_visible) return false;
 
       // 5. Price Filters (Debounced)
-      const productPrice = parseFloat(product.price);
+      const productPrice = Number(product.price) / 100;
       if (debouncedMinPrice && productPrice < parseFloat(debouncedMinPrice)) return false;
       if (debouncedMaxPrice && productPrice > parseFloat(debouncedMaxPrice)) return false;
 
@@ -383,7 +383,7 @@ export function ProductsList() {
                         {product.category?.name || 'Uncategorized'}
                       </td>
                       <td className="px-6 py-4 text-price text-neutral-900">
-                        ₹ {parseFloat(product.price).toFixed(2)}
+                        ₹ {(Number(product.price) / 100).toFixed(2)}
                       </td>
                       <td className="px-6 py-4 text-base text-neutral-700">
                         {product.stock_quantity}

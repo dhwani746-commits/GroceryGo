@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth/context';
+import { useAuth } from '@/lib/hooks/useAuth';
 import { useCart } from '@/lib/store/cart';
 import { useEffect, useState } from 'react';
 import { ShoppingCart, LogIn, Search, Menu, X, UserCircle, ChevronDown, Clock, MapPin, Mail, LogOut, BarChart3, Package } from 'lucide-react';
@@ -108,7 +108,7 @@ export function Header() {
                   className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-neutral-100 transition h-10 text-neutral-700"
                 >
                   <UserCircle size={20} strokeWidth={1.5} />
-                  <span className="text-sm font-medium">{profile.full_name}</span>
+                  <span className="font-semibold">{profile?.name || 'My Account'}</span>
                   <ChevronDown size={16} strokeWidth={1.5} className={`transition ${isUserMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
 

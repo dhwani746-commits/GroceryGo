@@ -6,57 +6,27 @@ import Link from 'next/link';
 import { Header } from '@/components/shared/Header';
 import { ProductGallery } from '@/components/store/ProductGallery';
 import { RelatedProducts } from '@/components/store/RelatedProducts';
-import { createClient } from '@/lib/supabase/client';
+
 import { useCart } from '@/lib/store/cart';
 
-interface Product {
-  id: string;
-  name: string;
-  slug: string;
-  price: string;
-  description: string | null;
-  image_urls: string[] | null;
-  stock_quantity: number;
-  category: string | null;
-}
+import { useQuery } from '@tanstack/react-query';
+import { getProductBySlug } from '@/lib/api/products';
+import { Product } from '@/lib/store/products';
 
 export default function ProductPage() {
   const params = useParams();
   const slug = params.slug as string;
-  const [product, setProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
-  const [loading, setLoading] = useState(true);
   const { addItem, items, updateQuantity } = useCart();
-  const supabase = createClient();
+  
+  const { data: product, isLoading: loading } = useQuery({
+    queryKey: ['product', slug],
+    queryFn: () => getProductBySlug(slug),
+    enabled: !!slug,
+  });
+
   const cartItem = product ? items.find((i) => i.id === product.id) : null;
   const isInCart = !!cartItem;
-
-  useEffect(() => {
-    setLoading(true);
-    setProduct(null);
-
-    async function fetchProduct() {
-      try {
-        const { data, error } = await supabase
-          .from('products')
-          .select('*')
-          .eq('slug', slug)
-          .eq('is_visible', true)
-          .eq('is_deleted', false)
-          .single();
-
-        if (error) throw error;
-        setProduct(data);
-      } catch (err) {
-        console.error('Failed to load product:', err);
-        setProduct(null);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    if (slug) fetchProduct();
-  }, [slug]);
 
   if (loading) return <div className="text-center py-20">Loading...</div>;
   if (!product) return <div className="text-center py-20">Product not found</div>;
@@ -112,7 +82,7 @@ export default function ProductPage() {
           <div className="space-y-6">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
-              <p className="text-2xl font-bold text-blue-600 mt-2">₹{parseFloat(product.price).toFixed(2)}</p>
+              <p className="text-2xl font-bold text-blue-600 mt-2">₹{(Number(product.price) / 100).toFixed(2)}</p>
             </div>
 
             <div>

@@ -1,9 +1,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const supabase = await createClient();
-  const id = params.id;
+  const id = (await params).id;
 
   const {
     data: { user },
@@ -21,9 +21,9 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   return NextResponse.json({ address: data });
 }
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const supabase = await createClient();
-  const id = params.id;
+  const id = (await params).id;
   const body = await req.json();
 
   const {
@@ -48,9 +48,9 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   return NextResponse.json({ address: data });
 }
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const supabase = await createClient();
-  const id = params.id;
+  const id = (await params).id;
 
   const {
     data: { user },

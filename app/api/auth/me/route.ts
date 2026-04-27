@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { UserService } from '@/lib/services/user.service';
 
 export async function GET() {
   const supabase = await createClient();
@@ -16,13 +17,9 @@ export async function GET() {
       );
     }
 
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
+    const profile = await UserService.getProfile(user.id);
 
-    if (profileError) {
+    if (!profile) {
       return NextResponse.json(
         { error: 'Profile not found' },
         { status: 404 }

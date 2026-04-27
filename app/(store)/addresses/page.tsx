@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/lib/auth/context';
+import { useAuth } from '@/lib/hooks/useAuth';
 import { Header } from '@/components/shared/Header';
 
 type Address = {

@@ -51,7 +51,7 @@ export const useCart = create<CartState>()(
       clearCart: () => set({ items: [] }),
       getTotalPrice: () =>
         get().items.reduce((total, item) => {
-          const price = typeof item.price === 'string' ? parseFloat(item.price) : item.price;
+          const price = Number(item.price) / 100;
           return total + price * item.quantity;
         }, 0),
       getTotalItems: () => get().items.reduce((total, item) => total + item.quantity, 0),

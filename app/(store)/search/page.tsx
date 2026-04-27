@@ -2,7 +2,7 @@
 
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+
 import { useProducts } from '@/lib/store/products';
 import { ProductCard } from '@/components/store/ProductCard';
 import { Search as SearchIcon } from 'lucide-react';
@@ -21,64 +21,39 @@ interface Product {
   category: string | null;
 }
 
+import { useQuery } from '@tanstack/react-query';
+import { searchProducts } from '@/lib/api/products';
+
 export default function SearchPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const query = searchParams.get('q') || '';
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(false);
-  const supabase = createClient();
   const cachedProducts = useProducts((state) => state.products);
 
-  useEffect(() => {
-    if (!query.trim()) {
-      setProducts([]);
-      setLoading(false);
-      return;
+  const { data: fetchedProducts, isLoading } = useQuery({
+    queryKey: ['search', query],
+    queryFn: () => searchProducts(query),
+    enabled: !!query.trim(),
+  });
+
+  // Calculate final products (local cache search if possible, else fetched)
+  const products = (() => {
+    if (!query.trim()) return [];
+    
+    const searchLower = query.toLowerCase();
+    const localResults = cachedProducts.filter(
+      (p) =>
+        p.name.toLowerCase().includes(searchLower) ||
+        (p.description && p.description.toLowerCase().includes(searchLower))
+    );
+
+    if (localResults.length > 0) {
+      return localResults;
     }
+    return fetchedProducts || [];
+  })();
 
-    setLoading(true);
-
-    const searchProducts = async () => {
-      try {
-        // Search in cached products first
-        const searchLower = query.toLowerCase();
-        const localResults = cachedProducts.filter(
-          (p) =>
-            p.name.toLowerCase().includes(searchLower) ||
-            (p.description && p.description.toLowerCase().includes(searchLower))
-        );
-
-        // If results found locally, use them
-        if (localResults.length > 0) {
-          setProducts(localResults);
-          setLoading(false);
-          return;
-        }
-
-        // Otherwise, fetch from database
-        const { data, error } = await supabase
-          .from('products')
-          .select('id, name, slug, price, description, image_urls, stock_quantity, category')
-          .or(
-            `name.ilike.%${query}%,description.ilike.%${query}%`
-          )
-          .eq('is_visible', true)
-          .eq('is_deleted', false)
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        setProducts(data || []);
-      } catch (err) {
-        console.error('Search error:', err);
-        setProducts([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    searchProducts();
-  }, [query, cachedProducts]);
+  const loading = !!query.trim() && isLoading && products.length === 0;
 
   return (
     <>

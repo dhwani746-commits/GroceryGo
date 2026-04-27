@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface AuthFormProps {
   mode: 'login' | 'register';
@@ -12,6 +13,7 @@ interface AuthFormProps {
 
 export function AuthForm({ mode, isAdmin = false }: AuthFormProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const supabase = createClient();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -69,13 +71,16 @@ export function AuthForm({ mode, isAdmin = false }: AuthFormProps) {
           if (profileError) throw profileError;
 
           // Check admin access
-          if (isAdmin && profile?.role !== 'admin') {
+          if (isAdmin && profile?.role?.toUpperCase() !== 'ADMIN') {
             await supabase.auth.signOut();
             throw new Error('Only admins can access this area');
           }
 
+          // Invalidate auth cache so Header UI updates
+          await queryClient.invalidateQueries({ queryKey: ['auth'] });
+
           // Redirect based on role
-          if (isAdmin || profile?.role === 'admin') {
+          if (isAdmin || profile?.role?.toUpperCase() === 'ADMIN') {
             router.push('/admin/dashboard');
           } else {
             router.push('/');

@@ -55,7 +55,7 @@ export default function CartPage() {
                   <div className="flex-1">
                     <h3 className="font-semibold text-neutral-900">{item.name}</h3>
                     <p className="text-brand-primary-600 font-bold mt-1">
-                      ₹{parseFloat(String(item.price)).toFixed(2)}
+                      ₹{(Number(item.price) / 100).toFixed(2)}
                     </p>
 
                     {/* Quantity Controls */}
