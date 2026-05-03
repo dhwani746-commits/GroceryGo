@@ -17,44 +17,20 @@ export function Categories() {
   useEffect(() => {
     async function fetchCategories() {
       try {
-        // Get distinct categories
         const { data: categoryData, error: categoryError } = await supabase
-          .from('products')
-          .select('category')
-          .eq('is_visible', true)
-          .eq('is_deleted', false)
-          .neq('category', null);
+          .from('categories')
+          .select('name, image_url')
+          .gt('product_count', 0)
+          .order('name');
 
         if (categoryError) throw categoryError;
 
-        // Get unique categories
-        const uniqueCategories = Array.from(
-          new Set((categoryData || []).map((p) => p.category).filter(Boolean))
-        ) as string[];
-
-        // For each category, fetch a random product image
-        const categoriesWithImages: Category[] = [];
-
-        for (const category of uniqueCategories) {
-          const { data: productData, error: productError } = await supabase
-            .from('products')
-            .select('image_urls')
-            .eq('category', category)
-            .eq('is_visible', true)
-            .eq('is_deleted', false)
-            .limit(1);
-
-          if (!productError && productData && productData.length > 0) {
-            const images = productData[0].image_urls as string[] | null;
-            const imageUrl = images && images.length > 0 ? images[0] : '/placeholder.png';
-            categoriesWithImages.push({
-              name: category,
-              image_url: imageUrl,
-            });
-          }
-        }
-
-        setCategories(categoriesWithImages);
+        setCategories(
+          (categoryData || []).map(cat => ({
+            name: cat.name,
+            image_url: cat.image_url || '/placeholder.png'
+          }))
+        );
       } catch (err) {
         console.error('Error loading categories:', err);
       } finally {
@@ -65,13 +41,27 @@ export function Categories() {
     fetchCategories();
   }, [supabase]);
 
-  if (loading) return <div className="text-center py-8 text-neutral-600">Loading categories...</div>;
+  if (loading) {
+    return (
+      <div className="mb-16">
+        <div className="h-8 w-44 bg-neutral-200 rounded-md animate-pulse mb-6" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="flex flex-col items-center gap-2">
+              <div className="w-full aspect-square rounded-lg bg-neutral-200 animate-pulse" />
+              <div className="h-3 w-3/4 bg-neutral-200 rounded animate-pulse" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
   if (!categories.length) return null;
 
   return (
     <div className="mb-16">
       <h3 className="text-2xl font-bold text-gray-900 mb-6">Shop by Category</h3>
-      <div className="grid grid-cols-4 md:grid-cols-4 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
         {categories.map((category) => (
           <Link
             key={category.name}

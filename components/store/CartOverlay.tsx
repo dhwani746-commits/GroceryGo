@@ -2,7 +2,7 @@
 
 import { useCart } from '@/lib/store/cart';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Minus, Plus, Trash2 } from 'lucide-react';
 
 interface CartOverlayProps {
@@ -14,6 +14,17 @@ export function CartOverlay({ isOpen, onClose }: CartOverlayProps) {
   const { items, removeItem, updateQuantity, getTotalPrice, getTotalItems } = useCart();
   const router = useRouter();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
 
   const handleProceedToCheckout = async () => {
     setIsCheckingOut(true);
@@ -40,7 +51,12 @@ export function CartOverlay({ isOpen, onClose }: CartOverlayProps) {
       >
         {/* Header */}
         <div className="flex justify-between items-center px-6 py-4 border-b border-neutral-200">
-          <h2 className="text-2xl font-bold text-neutral-900">Your Cart</h2>
+          <h2 className="text-2xl font-bold text-neutral-900 flex items-center gap-2">
+            Your Cart
+            {items.length > 0 && (
+              <span className="text-lg text-neutral-500 font-medium">({getTotalItems()} items)</span>
+            )}
+          </h2>
           <button
             onClick={onClose}
             className="text-neutral-500 hover:text-neutral-700 transition rounded-md p-2 hover:bg-neutral-100"

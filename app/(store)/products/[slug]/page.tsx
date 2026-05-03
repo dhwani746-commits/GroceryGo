@@ -18,7 +18,7 @@ export default function ProductPage() {
   const slug = params.slug as string;
   const [quantity, setQuantity] = useState(1);
   const { addItem, items, updateQuantity } = useCart();
-  
+
   const { data: product, isLoading: loading } = useQuery({
     queryKey: ['product', slug],
     queryFn: () => getProductBySlug(slug),
@@ -82,7 +82,7 @@ export default function ProductPage() {
           <div className="space-y-6">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
-              <p className="text-2xl font-bold text-blue-600 mt-2">₹{(Number(product.price) / 100).toFixed(2)}</p>
+              <p className="text-2xl font-bold text-blue-600 mt-2">₹{(Number(product.price)).toFixed(2)}</p>
             </div>
 
             <div>
@@ -125,11 +125,10 @@ export default function ProductPage() {
                 <button
                   onClick={handleAddToCart}
                   disabled={isInCart}
-                  className={`w-full py-3 rounded-lg font-semibold transition ${
-                    isInCart
-                      ? 'bg-green-500 text-white cursor-not-allowed'
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
-                  }`}
+                  className={`w-full py-3 rounded-lg font-semibold transition ${isInCart
+                    ? 'bg-green-500 text-white cursor-not-allowed'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                    }`}
                 >
                   {isInCart ? '✓ In Cart' : 'Add to Cart'}
                 </button>

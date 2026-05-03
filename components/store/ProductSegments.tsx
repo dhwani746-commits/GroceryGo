@@ -77,8 +77,35 @@ export function ProductSegments() {
     fetchProducts();
   }, [setStoreProducts]);
 
-  if (loading)
-    return <div className="text-center py-8 text-neutral-600">Loading products...</div>;
+  if (loading) {
+    return (
+      <div className="space-y-12">
+        {Array.from({ length: 2 }).map((_, segIdx) => (
+          <div key={segIdx}>
+            {/* Skeleton segment header */}
+            <div className="flex justify-between items-center mb-6">
+              <div className="h-8 w-48 bg-neutral-200 rounded-md animate-pulse" />
+              <div className="h-5 w-16 bg-neutral-200 rounded animate-pulse" />
+            </div>
+            {/* Skeleton product cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 lg:gap-6">
+              {Array.from({ length: 4 }).map((_, cardIdx) => (
+                <div key={cardIdx} className="rounded-lg border border-neutral-200 overflow-hidden">
+                  <div className="w-full aspect-square bg-neutral-200 animate-pulse" />
+                  <div className="p-3 space-y-2">
+                    <div className="h-3.5 bg-neutral-200 rounded animate-pulse w-3/4" />
+                    <div className="h-3 bg-neutral-200 rounded animate-pulse w-1/2" />
+                    <div className="h-9 bg-neutral-200 rounded-md animate-pulse mt-2" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   if (error)
     return <div className="text-center py-8 text-status-danger-600">{error}</div>;
   if (!segments.length)
@@ -88,17 +115,21 @@ export function ProductSegments() {
     <div className="space-y-12">
       {segments.map((segment) => (
         <div key={segment.category}>
-          <h3 className="text-2xl font-bold text-gray-900 mb-6 capitalize">
-            In {segment.category}
-          </h3>
-          <div className="flex flex-row overflow-x-auto gap-4 lg:grid lg:grid-cols-4 lg:gap-6 pb-2">
+          {/* Segment header with View All link */}
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-2xl font-bold text-gray-900 capitalize">
+              Explore {segment.category}
+            </h3>
+            <a
+              href={`/search?q=${encodeURIComponent(segment.category)}`}
+              className="text-sm font-semibold text-brand-primary-600 hover:text-brand-primary-700 hover:underline underline-offset-2 transition-colors flex items-center gap-1"
+            >
+              View all →
+            </a>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 lg:gap-6">
             {segment.products.map((product) => (
-              <div
-                key={product.id}
-                className="flex-shrink-0 w-64 md:w-72 lg:w-auto"
-              >
-                <ProductCard product={product} />
-              </div>
+              <ProductCard key={product.id} product={product} />
             ))}
           </div>
         </div>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Package, Settings, ShoppingCart, Tag, X, User, LogOut } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -10,8 +11,17 @@ interface AdminSidebarProps {
   username?: string;
 }
 
+const NAV_LINKS = [
+  { href: '/admin/dashboard', label: 'Dashboard',   icon: LayoutDashboard },
+  { href: '/admin/products',  label: 'Products',    icon: Package },
+  { href: '/admin/orders',    label: 'Orders',      icon: ShoppingCart },
+  { href: '/admin/promos',    label: 'Promo Codes', icon: Tag },
+  { href: '/admin/account',   label: 'Settings',    icon: Settings },
+];
+
 export function AdminSidebar({ isOpen, onClose, username }: AdminSidebarProps) {
   const [signingOut, setSigningOut] = useState(false);
+  const pathname = usePathname();
 
   const handleSignOut = async () => {
     try {
@@ -45,7 +55,7 @@ export function AdminSidebar({ isOpen, onClose, username }: AdminSidebarProps) {
         <nav className="p-4 py-6 md:py-8 space-y-4 w-64 flex flex-col h-full overflow-y-auto">
           {/* Header with Close Button */}
           <div className="flex justify-between items-start pb-4 border-b border-gray-200">
-            <div className="font-bold text-lg text-brand-primary-600">PlastiKart Admin
+            <div className="font-bold text-lg text-brand-primary-600">Krishna Plastics Admin
               <div className="text-sm text-gray-500">MANAGEMENT PORTAL</div>
             </div>
             <button
@@ -58,47 +68,25 @@ export function AdminSidebar({ isOpen, onClose, username }: AdminSidebarProps) {
           </div>
 
           {/* Navigation Links */}
-          <div className="flex-1 space-y-4">
-            <Link
-              href="/admin/dashboard"
-              onClick={onClose}
-              className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-white rounded transition"
-            >
-              <LayoutDashboard size={20} />
-              Dashboard
-            </Link>
-            <Link
-              href="/admin/products"
-              onClick={onClose}
-              className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-white rounded transition"
-            >
-              <Package size={20} />
-              Products
-            </Link>
-            <Link
-              href="/admin/orders"
-              onClick={onClose}
-              className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-white rounded transition"
-            >
-              <ShoppingCart size={20} />
-              Orders
-            </Link>
-            <Link
-              href="/admin/promos"
-              onClick={onClose}
-              className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-white rounded transition"
-            >
-              <Tag size={20} />
-              Promo Codes
-            </Link>
-            <Link
-              href="/admin/account"
-              onClick={onClose}
-              className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-white rounded transition"
-            >
-              <Settings size={20} />
-              Settings
-            </Link>
+          <div className="flex-1 space-y-1">
+            {NAV_LINKS.map(({ href, label, icon: Icon }) => {
+              const isActive = pathname === href || pathname.startsWith(href + '/');
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={onClose}
+                  className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition text-sm font-medium ${
+                    isActive
+                      ? 'bg-brand-primary-50 text-brand-primary-700'
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  }`}
+                >
+                  <Icon size={18} />
+                  {label}
+                </Link>
+              );
+            })}
           </div>
 
           {/* User Info at Bottom */}

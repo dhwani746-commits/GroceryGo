@@ -3,7 +3,8 @@ import type { User } from '@supabase/supabase-js';
 
 export interface Profile {
   id: string;
-  name: string;
+  name?: string;
+  full_name?: string;
   phone: string | null;
   role: 'CUSTOMER' | 'ADMIN';
   created_at: string;

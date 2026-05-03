@@ -5,7 +5,7 @@ export class UserRepository {
     const supabase = await createServerClient();
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, name, phone, role, created_at, updated_at')
+      .select('id, full_name, phone, role, created_at, updated_at')
       .eq('id', userId)
       .single();
 

@@ -14,20 +14,39 @@ interface Product {
   stock_quantity: number;
 }
 
-export function RelatedProducts({ productId, category }: { productId: string; category: string | null }) {
+export function RelatedProducts({ 
+  productId, 
+  category,
+  excludeIds = []
+}: { 
+  productId?: string | null; 
+  category?: string | null;
+  excludeIds?: string[];
+}) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
   useEffect(() => {
     async function fetchRelatedProducts() {
+      const idsToExclude = [...excludeIds];
+      if (productId && productId !== 'undefined') idsToExclude.push(productId);
+
+      if (idsToExclude.length === 0 && !category) {
+        setLoading(false);
+        return;
+      }
+
       try {
         let query = supabase
           .from('products')
           .select('id, name, slug, price, description, image_urls, stock_quantity')
           .eq('is_visible', true)
-          .eq('is_deleted', false)
-          .neq('id', productId);
+          .is('deleted_at', null);
+
+        if (idsToExclude.length > 0) {
+          query = query.not('id', 'in', `(${idsToExclude.join(',')})`);
+        }
 
         // Try to fetch from same category first
         if (category) {
@@ -43,13 +62,17 @@ export function RelatedProducts({ productId, category }: { productId: string; ca
         }
 
         // If no same category products, fetch from different categories
-        const { data: differentCategoryData, error: differentCategoryError } = await supabase
+        let differentCategoryQuery = supabase
           .from('products')
           .select('id, name, slug, price, description, image_urls, stock_quantity')
           .eq('is_visible', true)
-          .eq('is_deleted', false)
-          .neq('id', productId)
-          .limit(8);
+          .is('deleted_at', null);
+
+        if (idsToExclude.length > 0) {
+          differentCategoryQuery = differentCategoryQuery.not('id', 'in', `(${idsToExclude.join(',')})`);
+        }
+
+        const { data: differentCategoryData, error: differentCategoryError } = await differentCategoryQuery.limit(8);
 
         if (differentCategoryError) throw differentCategoryError;
         setProducts(differentCategoryData || []);
@@ -61,21 +84,19 @@ export function RelatedProducts({ productId, category }: { productId: string; ca
     }
 
     fetchRelatedProducts();
-  }, [productId, category, supabase]);
+  }, [productId, category, excludeIds.join(','), supabase]);
 
   if (loading) return <div className="text-center py-8 text-neutral-600">Loading suggestions...</div>;
   if (!products.length) return null;
 
   return (
-    <section className="mt-16 pt-8 border-t border-neutral-200">
+    <section className="m-6 lg:m-24 pt-8 border-t border-neutral-200">
       <h3 className="text-2xl font-bold text-gray-900 mb-6">
         {category ? 'More from this Category' : 'You might also like'}
       </h3>
-      <div className="flex flex-row overflow-x-auto gap-4 lg:grid lg:grid-cols-4 lg:gap-6 pb-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 lg:gap-6">
         {products.map((product) => (
-          <div key={product.id} className="flex-shrink-0 w-64 md:w-72 lg:w-auto">
-            <ProductCard product={product} />
-          </div>
+          <ProductCard key={product.id} product={product} />
         ))}
       </div>
     </section>

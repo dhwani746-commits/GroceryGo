@@ -10,7 +10,12 @@ import { CartOverlay } from '@/components/store/CartOverlay';
 import { MenuOverlay } from './MenuOverlay';
 import { Logo } from './Logo';
 
-export function Header() {
+interface HeaderProps {
+  /** Hide the search bar on task-focused pages (checkout, orders, account, etc.) */
+  hideSearch?: boolean;
+}
+
+export function Header({ hideSearch = false }: HeaderProps) {
   const router = useRouter();
   const { user, profile, isAdmin, loading } = useAuth();
   const { items } = useCart();
@@ -69,18 +74,10 @@ export function Header() {
       {/* Top Row: Logo, Cart, Hamburger/SignIn */}
       <div className="max-w-[90rem] mx-auto py-3 md:py-5 px-4 md:px-6 flex justify-between items-center">
         <Logo />
-        
+
         <div className="flex gap-3 items-center ml-auto">
           <button
-            onClick={() => {
-              if (window.innerWidth >= 1024) {
-                // Desktop: open overlay
-                setIsCartOpen(true);
-              } else {
-                // Mobile/Tablet: navigate to cart page
-                router.push('/cart');
-              }
-            }}
+            onClick={() => setIsCartOpen(true)}
             className="relative text-neutral-700 hover:text-neutral-900 transition flex items-center justify-center h-10 w-10 rounded-md hover:bg-neutral-100"
           >
             <ShoppingCart size={20} strokeWidth={1.5} />
@@ -92,7 +89,7 @@ export function Header() {
           </button>
 
           {user && profile ? (
-            <> 
+            <>
               {/* mobile menu toggle */}
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -108,7 +105,7 @@ export function Header() {
                   className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-neutral-100 transition h-10 text-neutral-700"
                 >
                   <UserCircle size={20} strokeWidth={1.5} />
-                  <span className="font-semibold">{profile?.name || 'My Account'}</span>
+                  <span className="font-semibold">{profile?.full_name || profile?.name || 'My Account'}</span>
                   <ChevronDown size={16} strokeWidth={1.5} className={`transition ${isUserMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
 
@@ -211,36 +208,37 @@ export function Header() {
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="max-w-[90rem] mx-auto px-4 md:px-6 pb-3 md:pb-4">
-        <form onSubmit={handleSearch}>
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search products..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-3 md:py-4 pl-12 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary-500 focus:border-transparent bg-neutral-50 text-base"
-            />
-            <Search size={20} strokeWidth={1.5} className="absolute left-4 top-1/2 transform -translate-y-1/2 text-neutral-500 pointer-events-none" />
-          </div>
-        </form>
-      </div>
+      {/* Search Bar — hidden on task-focused pages (checkout, orders, account) */}
+      {!hideSearch && (
+        <div className={`max-w-[90rem] mx-auto px-4 md:px-6 pb-3 md:pb-4 ${isCartOpen ? 'hidden lg:block' : ''}`}>
+          <form onSubmit={handleSearch}>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-4 py-3 md:py-4 pl-12 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary-500 focus:border-transparent bg-neutral-50 text-base"
+              />
+              <Search size={20} strokeWidth={1.5} className="absolute left-4 top-1/2 transform -translate-y-1/2 text-neutral-500 pointer-events-none" />
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Mobile Menu Overlay */}
       <MenuOverlay
         isOpen={isMenuOpen}
         onClose={() => setIsMenuOpen(false)}
-        user={!!(user && profile)}
+        user={user}
+        profile={profile}
         isAdmin={isAdmin}
         onSignOut={handleSignOut}
         signingOut={signingOut}
       />
 
-      {/* Desktop Cart Overlay */}
-      <div className="hidden lg:block">
-        <CartOverlay isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
-      </div>
+      {/* Cart Overlay */}
+      <CartOverlay isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </header>
   );
 }

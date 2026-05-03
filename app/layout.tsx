@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'PlastiKart - Premium Plastic Products',
-  description: 'Shop quality plastic containers, buckets, and more at PlastiKart',
+  title: 'Krishna Plastics - Premium Plastic Products',
+  description: 'Shop quality plastic containers, buckets, and more at Krishna Plastics',
 };
 
 export default function RootLayout({

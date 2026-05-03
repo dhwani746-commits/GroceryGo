@@ -40,11 +40,9 @@ export function ProductList() {
   if (!products.length) return <div className="text-center py-8 text-neutral-600">No products available</div>;
 
   return (
-    <div className="flex flex-row overflow-x-auto gap-4 lg:grid lg:grid-cols-4 lg:gap-6 pb-2">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 lg:gap-6">
       {products.map((product) => (
-        <div key={product.id} className="flex-shrink-0 w-64 md:w-72 lg:w-auto">
-          <ProductCard product={product} />
-        </div>
+        <ProductCard key={product.id} product={product} />
       ))}
     </div>
   );

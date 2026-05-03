@@ -27,7 +27,7 @@ export function ProductsList() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [stockFilter, setStockFilter] = useState<'all' | 'out_of_stock' | 'low_stock'>('all');
-  
+
   // Advanced Filters
   const [showFilters, setShowFilters] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -122,7 +122,7 @@ export function ProductsList() {
       // 1. Search Query (Debounced)
       const matchesSearch = product.name.toLowerCase().includes(debouncedSearch.toLowerCase());
       if (!matchesSearch) return false;
-      
+
       // 2. Overview Card Filters
       if (stockFilter === 'out_of_stock' && product.stock_quantity !== 0) return false;
       if (stockFilter === 'low_stock' && (product.stock_quantity === 0 || product.stock_quantity > 10)) return false;
@@ -235,7 +235,7 @@ export function ProductsList() {
             />
             <Search size={20} strokeWidth={1.5} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-500" />
           </div>
-          
+
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`flex items-center gap-2 px-4 py-2 border rounded-md font-medium transition h-10 ${showFilters ? 'bg-brand-primary-50 border-brand-primary-200 text-brand-primary-700' : 'bg-white border-neutral-300 text-neutral-700 hover:bg-neutral-50'}`}
@@ -254,7 +254,7 @@ export function ProductsList() {
         {/* Expandable Filter Panel */}
         {showFilters && (
           <div className="pt-4 border-t border-neutral-200 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-2">
-            
+
             {/* Category Filter */}
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-neutral-700">Category</label>
@@ -305,7 +305,7 @@ export function ProductsList() {
                   onChange={(e) => setMaxPrice(e.target.value.replace(/[^0-9.]/g, ''))}
                   className="w-full h-10 px-3 bg-white border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary-500 text-base text-neutral-700 placeholder-neutral-400"
                 />
-                
+
                 {/* Clear Filters Button (Only shows if something is selected) */}
                 {(selectedCategory !== 'all' || statusFilter !== 'all' || minPrice || maxPrice) && (
                   <button
@@ -383,7 +383,7 @@ export function ProductsList() {
                         {product.category?.name || 'Uncategorized'}
                       </td>
                       <td className="px-6 py-4 text-price text-neutral-900">
-                        ₹ {(Number(product.price) / 100).toFixed(2)}
+                        ₹ {(Number(product.price)).toFixed(2)}
                       </td>
                       <td className="px-6 py-4 text-base text-neutral-700">
                         {product.stock_quantity}
@@ -483,7 +483,7 @@ export function ProductsList() {
                 <h3 className="text-lg font-medium text-neutral-900">Delete Product</h3>
               </div>
               <p className="text-base text-neutral-700">
-                Are you sure you want to delete <span className="font-semibold text-neutral-900">{productToDelete.name}</span>? 
+                Are you sure you want to delete <span className="font-semibold text-neutral-900">{productToDelete.name}</span>?
                 This action cannot be undone.
               </p>
             </div>

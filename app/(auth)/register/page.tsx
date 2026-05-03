@@ -6,7 +6,7 @@ export default function RegisterPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Create Account</h1>
         <p className="mt-2 text-sm text-gray-600">
-          Sign up to start shopping at PlastiKart
+          Sign up to start shopping at Krishna Plastics
         </p>
       </div>
       <AuthForm mode="register" />
