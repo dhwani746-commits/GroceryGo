@@ -79,6 +79,8 @@ export class OrderService {
     // 3. Validate and apply promo code (if provided)
     let discountAmount = 0;
     let promoCodeId: string | undefined;
+    let promoTimesUsed: number | null = null;
+    let promoUsageLimit: number | null = null;
 
     if (input.promoCode) {
       const { data: promo, error: promoError } = await supabase
@@ -107,6 +109,8 @@ export class OrderService {
       }
 
       promoCodeId = promo.id;
+      promoTimesUsed = promo.times_used;
+      promoUsageLimit = promo.usage_limit;
     }
 
     const totalAmount = Math.max(0, subtotal - discountAmount);
@@ -130,14 +134,25 @@ export class OrderService {
     });
 
     // 5. Increment promo usage (non-blocking; failure doesn't abort the order)
-    if (promoCodeId) {
-      supabase
+    if (promoCodeId && promoTimesUsed !== null) {
+      let updateQuery = supabase
         .from('promo_codes')
-        .update({ times_used: supabase.rpc('increment', { row_id: promoCodeId }) })
+        .update({ times_used: promoTimesUsed + 1 })
         .eq('id', promoCodeId)
-        .then(({ error }) => {
-          if (error) console.error('Failed to increment promo usage:', error);
+        .eq('times_used', promoTimesUsed);
+
+      if (promoUsageLimit !== null) {
+        updateQuery = updateQuery.lt('times_used', promoUsageLimit);
+      }
+
+      const { error } = await updateQuery;
+      if (error) {
+        console.error('Failed to increment promo usage:', {
+          promoCodeId,
+          promoTimesUsed,
+          error,
         });
+      }
     }
 
     return order;

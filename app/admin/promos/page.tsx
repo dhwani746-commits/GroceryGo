@@ -6,6 +6,7 @@ import {
   Tag,
   Plus,
   Trash2,
+  Pencil,
   Loader2,
   RefreshCw,
   CheckCircle2,
@@ -40,6 +41,7 @@ export default function AdminPromosPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [editingPromoId, setEditingPromoId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
   const [togglingId, setTogglingId] = useState<string | null>(null);
@@ -59,6 +61,27 @@ export default function AdminPromosPage() {
   }, []);
 
   useEffect(() => { fetchPromos(); }, [fetchPromos]);
+
+  const resetFormState = () => {
+    setShowForm(false);
+    setEditingPromoId(null);
+    setForm(EMPTY_FORM);
+    setFormError('');
+  };
+
+  const startEditingPromo = (promo: PromoCode) => {
+    setForm({
+      code: promo.code,
+      discount_type: promo.discount_type,
+      discount_value: String(promo.discount_value),
+      expires_at: promo.expires_at ? new Date(promo.expires_at).toISOString().slice(0, 16) : '',
+      usage_limit: promo.usage_limit === null ? '' : String(promo.usage_limit),
+      is_active: promo.is_active,
+    });
+    setEditingPromoId(promo.id);
+    setFormError('');
+    setShowForm(true);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,19 +103,20 @@ export default function AdminPromosPage() {
 
     setSubmitting(true);
     try {
-      const res = await fetch('/api/admin/promos', {
-        method: 'POST',
+      const isEditing = editingPromoId !== null;
+      const endpoint = isEditing ? `/api/admin/promos/${editingPromoId}` : '/api/admin/promos';
+      const res = await fetch(endpoint, {
+        method: isEditing ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
       const json = await res.json();
       if (!res.ok) {
-        setFormError(json.error ?? 'Failed to create promo');
+        setFormError(json.error ?? `Failed to ${isEditing ? 'update' : 'create'} promo`);
         return;
       }
-      toast.success('Promo code created');
-      setShowForm(false);
-      setForm(EMPTY_FORM);
+      toast.success(`Promo code ${isEditing ? 'updated' : 'created'}`);
+      resetFormState();
       fetchPromos();
     } catch {
       setFormError('Network error');
@@ -111,9 +135,8 @@ export default function AdminPromosPage() {
       });
       if (!res.ok) throw new Error();
       toast.success(`Promo ${promo.is_active ? 'deactivated' : 'activated'}`);
-      setPromos((prev) =>
-        prev.map((p) => (p.id === promo.id ? { ...p, is_active: !p.is_active } : p)),
-      );
+      setPromos((prev) => prev.map((p) => (p.id === promo.id ? { ...p, is_active: !p.is_active } : p)));
+      await fetchPromos();
     } catch {
       toast.error('Failed to update promo');
     } finally {
@@ -153,11 +176,17 @@ export default function AdminPromosPage() {
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           </button>
           <button
-            onClick={() => setShowForm((v) => !v)}
+            onClick={() => {
+              if (showForm) {
+                resetFormState();
+                return;
+              }
+              setShowForm(true);
+            }}
             className="flex items-center gap-2 px-4 py-2 text-sm bg-brand-primary-600 text-white rounded-lg hover:bg-brand-primary-700 transition font-medium"
           >
             <Plus size={16} />
-            New Promo
+            {showForm ? 'Close' : 'New Promo'}
           </button>
         </div>
       </div>
@@ -165,7 +194,9 @@ export default function AdminPromosPage() {
       {/* Create Form */}
       {showForm && (
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
-          <h2 className="font-semibold text-gray-900 mb-4">Create Promo Code</h2>
+          <h2 className="font-semibold text-gray-900 mb-4">
+            {editingPromoId ? 'Edit Promo Code' : 'Create Promo Code'}
+          </h2>
           <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -255,11 +286,11 @@ export default function AdminPromosPage() {
                 className="flex items-center gap-2 px-5 py-2.5 bg-brand-primary-600 text-white rounded-lg text-sm font-medium hover:bg-brand-primary-700 disabled:opacity-60 transition"
               >
                 {submitting ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
-                Create Promo
+                {editingPromoId ? 'Update Promo' : 'Create Promo'}
               </button>
               <button
                 type="button"
-                onClick={() => { setShowForm(false); setForm(EMPTY_FORM); setFormError(''); }}
+                onClick={resetFormState}
                 className="px-5 py-2.5 border border-gray-200 rounded-lg text-sm hover:bg-gray-50 transition"
               >
                 Cancel
@@ -351,6 +382,13 @@ export default function AdminPromosPage() {
                             {togglingId === promo.id ? (
                               <Loader2 size={12} className="animate-spin" />
                             ) : promo.is_active ? 'Deactivate' : 'Activate'}
+                          </button>
+                          <button
+                            onClick={() => startEditingPromo(promo)}
+                            className="p-1.5 text-gray-400 hover:text-brand-primary-600 hover:bg-brand-primary-50 rounded-lg transition"
+                            title="Edit promo"
+                          >
+                            <Pencil size={14} />
                           </button>
                           <button
                             onClick={() => deletePromo(promo.id)}

@@ -15,9 +15,11 @@ export async function GET(req: Request) {
     const sort: SortOption = VALID_SORTS.includes(rawSort as SortOption) ? (rawSort as SortOption) : 'newest';
     const category = searchParams.get('category') ?? '';
     const inStock  = searchParams.get('in_stock') === '1';
+    const minPrice = searchParams.get('min_price') ? parseFloat(searchParams.get('min_price')!) : undefined;
+    const maxPrice = searchParams.get('max_price') ? parseFloat(searchParams.get('max_price')!) : undefined;
 
     const paginate = searchParams.has('page') || searchParams.has('per_page');
-    const filters  = { sort, category: category || undefined, inStock: inStock || undefined };
+    const filters  = { sort, category: category || undefined, inStock: inStock || undefined, minPrice, maxPrice };
 
     if (paginate) {
       const result = query.trim()

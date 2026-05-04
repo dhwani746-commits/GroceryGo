@@ -1,12 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { z } from 'zod';
+
+const OptionalDateTimeSchema = z
+  .union([z.string(), z.null(), z.undefined()])
+  .transform((value, ctx) => {
+    if (value === null || value === undefined) return null;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+
+    const parsedDate = new Date(trimmed);
+    if (Number.isNaN(parsedDate.getTime())) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Invalid expires_at datetime' });
+      return z.NEVER;
+    }
+
+    return parsedDate.toISOString();
+  });
 
 const PromoSchema = z.object({
   code: z.string().min(2).max(32).regex(/^[A-Z0-9_-]+$/, 'Code must be uppercase alphanumeric'),
   discount_type: z.enum(['percentage', 'flat']),
   discount_value: z.number().positive(),
-  expires_at: z.string().datetime().optional().nullable(),
+  expires_at: OptionalDateTimeSchema.optional(),
   usage_limit: z.number().int().positive().optional().nullable(),
   is_active: z.boolean().default(true),
 });
@@ -24,7 +41,7 @@ async function requireAdmin() {
     .eq('id', user.id)
     .single();
 
-  return profile?.role === 'admin' ? { user, supabase } : null;
+  return profile?.role === 'admin' ? { user } : null;
 }
 
 export async function GET() {
@@ -32,7 +49,8 @@ export async function GET() {
   if (!ctx) return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
 
   try {
-    const { data, error } = await ctx.supabase
+    const adminSupabase = createAdminClient();
+    const { data, error } = await adminSupabase
       .from('promo_codes')
       .select('*')
       .order('created_at', { ascending: false });
@@ -53,6 +71,9 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     // Normalize code to uppercase before validation
     if (body.code) body.code = String(body.code).toUpperCase().trim();
+    if (Object.hasOwn(body, 'expires_at')) {
+      body.expires_at = body.expires_at === '' ? null : body.expires_at;
+    }
 
     const parsed = PromoSchema.safeParse(body);
     if (!parsed.success) {
@@ -62,7 +83,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { data, error } = await ctx.supabase
+    const adminSupabase = createAdminClient();
+    const { data, error } = await adminSupabase
       .from('promo_codes')
       .insert(parsed.data)
       .select()

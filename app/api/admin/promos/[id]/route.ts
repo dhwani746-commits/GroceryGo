@@ -1,10 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { z } from 'zod';
 
+const OptionalDateTimeSchema = z
+  .union([z.string(), z.null(), z.undefined()])
+  .transform((value, ctx) => {
+    if (value === null || value === undefined) return null;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+
+    const parsedDate = new Date(trimmed);
+    if (Number.isNaN(parsedDate.getTime())) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Invalid expires_at datetime' });
+      return z.NEVER;
+    }
+
+    return parsedDate.toISOString();
+  });
+
 const UpdatePromoSchema = z.object({
+  code: z.string().min(2).max(32).regex(/^[A-Z0-9_-]+$/, 'Code must be uppercase alphanumeric').optional(),
+  discount_type: z.enum(['percentage', 'flat']).optional(),
   is_active: z.boolean().optional(),
-  expires_at: z.string().datetime().nullable().optional(),
+  expires_at: OptionalDateTimeSchema.optional(),
   usage_limit: z.number().int().positive().nullable().optional(),
   discount_value: z.number().positive().optional(),
 });
@@ -22,7 +41,7 @@ async function requireAdmin() {
     .eq('id', user.id)
     .single();
 
-  return profile?.role === 'admin' ? { user, supabase } : null;
+  return profile?.role === 'admin' ? { user } : null;
 }
 
 export async function PATCH(
@@ -35,7 +54,17 @@ export async function PATCH(
   const { id } = await params;
 
   try {
-    const body = await req.json();
+    const rawBody = await req.json();
+    const body =
+      rawBody && typeof rawBody === 'object'
+        ? {
+            ...rawBody,
+            ...(rawBody.code ? { code: String(rawBody.code).toUpperCase().trim() } : {}),
+            ...(Object.hasOwn(rawBody, 'expires_at')
+              ? { expires_at: rawBody.expires_at === '' ? null : rawBody.expires_at }
+              : {}),
+          }
+        : rawBody;
     const parsed = UpdatePromoSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
@@ -43,8 +72,15 @@ export async function PATCH(
         { status: 400 },
       );
     }
+    if (Object.keys(parsed.data).length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'At least one field is required for update' },
+        { status: 400 },
+      );
+    }
 
-    const { data, error } = await ctx.supabase
+    const adminSupabase = createAdminClient();
+    const { data, error } = await adminSupabase
       .from('promo_codes')
       .update(parsed.data)
       .eq('id', id)
@@ -70,7 +106,8 @@ export async function DELETE(
 
   try {
     // Soft-delete by deactivating rather than hard-deleting (preserves order history)
-    const { error } = await ctx.supabase
+    const adminSupabase = createAdminClient();
+    const { error } = await adminSupabase
       .from('promo_codes')
       .update({ is_active: false })
       .eq('id', id);

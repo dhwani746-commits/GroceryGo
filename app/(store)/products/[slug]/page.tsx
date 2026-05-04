@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Header } from '@/components/shared/Header';
 import { ProductGallery } from '@/components/store/ProductGallery';
 import { RelatedProducts } from '@/components/store/RelatedProducts';
+import { getProductDiscount, formatPriceInRupees } from '@/lib/utils/discounts';
 
 import { useCart } from '@/lib/store/cart';
 
@@ -32,6 +33,13 @@ export default function ProductPage() {
   if (!product) return <div className="text-center py-20">Product not found</div>;
 
   const inStock = product.stock_quantity > 0;
+  
+  // Calculate discount for this product
+  const priceInCents = Math.round(Number(product.price) * 100);
+  const discount = getProductDiscount(product.id, priceInCents);
+  const originalPrice = discount?.originalPrice ?? priceInCents;
+  const savingsInCents = discount?.savingsInCents ?? 0;
+  const discountPercent = discount?.discountPercent ?? 0;
 
   const handleAddToCart = () => {
     if (quantity > 0 && inStock) {
@@ -82,7 +90,26 @@ export default function ProductPage() {
           <div className="space-y-6">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
-              <p className="text-2xl font-bold text-blue-600 mt-2">₹{(Number(product.price)).toFixed(2)}</p>
+              
+              {/* Price Section with Discount */}
+              <div className="mt-3 space-y-2">
+                <div className="flex items-center gap-3">
+                  <p className="text-2xl font-bold text-blue-600">₹{(Number(product.price)).toFixed(2)}</p>
+                  {discount && (
+                    <>
+                      <p className="text-xl text-gray-400 line-through">₹{(originalPrice / 100).toFixed(2)}</p>
+                      <span className="bg-red-600 text-white px-3 py-1 rounded-md text-sm font-bold">
+                        {discountPercent}% OFF
+                      </span>
+                    </>
+                  )}
+                </div>
+                {savingsInCents > 0 && (
+                  <p className="text-green-600 font-semibold">
+                    Save ₹{(savingsInCents / 100).toFixed(2)}
+                  </p>
+                )}
+              </div>
             </div>
 
             <div>
@@ -138,7 +165,11 @@ export default function ProductPage() {
         </div>
 
         {/* Related Products */}
-        <RelatedProducts productId={product.id} category={product.category} />
+        <RelatedProducts 
+          productId={product.id} 
+          category={product.category}
+          price={Number(product.price)}
+        />
       </main>
     </div>
   );

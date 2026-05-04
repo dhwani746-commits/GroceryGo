@@ -21,8 +21,10 @@ interface AddressForm {
   phone: string;
   line1: string;
   line2: string;
+  landmark: string;
   city: string;
   state: string;
+  postOffice: string;
   pincode: string;
 }
 
@@ -31,8 +33,10 @@ const EMPTY_ADDRESS: AddressForm = {
   phone: '',
   line1: '',
   line2: '',
+  landmark: '',
   city: '',
   state: '',
+  postOffice: '',
   pincode: '',
 };
 
@@ -43,19 +47,42 @@ interface PromoResult {
   discountAmount: number;
 }
 
+type OrderPlacementState = 'idle' | 'placing' | 'failed';
+interface SavedAddress {
+  id: string;
+  full_name: string | null;
+  landmark: string | null;
+  nickname: string;
+  address_line1: string;
+  address_line2: string | null;
+  city: string;
+  state: string | null;
+  post_office: string | null;
+  postal_code: string;
+  phone: string | null;
+}
+
 export default function CheckoutPage() {
   const router = useRouter();
   const supabase = createClient();
   const { items, clearCart, getTotalPrice, _hasHydrated } = useCart();
 
   const [address, setAddress] = useState<AddressForm>(EMPTY_ADDRESS);
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState('');
+  const [pincodeLookupLoading, setPincodeLookupLoading] = useState(false);
+  const [pincodeLookupError, setPincodeLookupError] = useState('');
+  const [isPincodeValidated, setIsPincodeValidated] = useState(false);
   const [promoInput, setPromoInput] = useState('');
   const [promo, setPromo] = useState<PromoResult | null>(null);
   const [promoLoading, setPromoLoading] = useState(false);
   const [promoError, setPromoError] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const [orderPlacementState, setOrderPlacementState] = useState<OrderPlacementState>('idle');
+  const [orderPlacementError, setOrderPlacementError] = useState('');
   const [formError, setFormError] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const isSavedAddressLocked = Boolean(selectedAddressId);
+  const isAddressLocked = isSavedAddressLocked || pincodeLookupLoading;
 
   // Auth guard — redirect to login if not authenticated
   useEffect(() => {
@@ -68,16 +95,108 @@ export default function CheckoutPage() {
     });
   }, [router, supabase.auth]);
 
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    fetch('/api/addresses')
+      .then(async (res) => {
+        if (!res.ok) return [];
+        const json = await res.json();
+        return (json.addresses ?? []) as SavedAddress[];
+      })
+      .then((addresses) => setSavedAddresses(addresses))
+      .catch(() => setSavedAddresses([]));
+  }, [isAuthenticated]);
+
   const subtotal = getTotalPrice(); // prices in rupees (NUMERIC from DB)
   const discountAmount = promo?.discountAmount ?? 0;
   const total = Math.max(0, subtotal - discountAmount);
 
   const handleAddressChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-      setAddress((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+      if (isSavedAddressLocked) return;
+      const { name, value } = e.target;
+      if (name === 'city' || name === 'state' || name === 'postOffice') return;
+      if (name === 'pincode') {
+        const sanitized = value.replace(/\D/g, '').slice(0, 6);
+        setAddress((prev) => ({
+          ...prev,
+          pincode: sanitized,
+          city: '',
+          state: '',
+          postOffice: '',
+        }));
+        setIsPincodeValidated(false);
+        setPincodeLookupError('');
+        return;
+      }
+      setAddress((prev) => ({ ...prev, [name]: value }));
     },
-    [],
+    [isSavedAddressLocked],
   );
+
+  const validatePincode = useCallback(async () => {
+    if (!/^\d{6}$/.test(address.pincode)) {
+      setPincodeLookupError('Enter a valid 6-digit pincode');
+      setIsPincodeValidated(false);
+      return;
+    }
+
+    setPincodeLookupLoading(true);
+    setPincodeLookupError('');
+    try {
+      const res = await fetch('/api/pincode/lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pincode: address.pincode }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setPincodeLookupError(json.error ?? 'Failed to validate pincode');
+        setIsPincodeValidated(false);
+        return;
+      }
+      const data = json.data as {
+        city: string;
+        state: string;
+        postOffice: string;
+      };
+      setAddress((prev) => ({
+        ...prev,
+        city: data.city,
+        state: data.state,
+        postOffice: data.postOffice,
+      }));
+      setIsPincodeValidated(true);
+    } catch {
+      setPincodeLookupError('Unable to validate pincode right now');
+      setIsPincodeValidated(false);
+    } finally {
+      setPincodeLookupLoading(false);
+    }
+  }, [address.pincode]);
+
+  const handleSavedAddressSelect = (addressId: string) => {
+    setSelectedAddressId(addressId);
+    setPincodeLookupError('');
+    const selected = savedAddresses.find((entry) => entry.id === addressId);
+    if (!selected) {
+      setIsPincodeValidated(false);
+      return;
+    }
+    setAddress((prev) => ({
+      ...prev,
+      name: selected.full_name ?? prev.name,
+      phone: selected.phone ?? prev.phone,
+      line1: selected.address_line1,
+      line2: selected.address_line2 ?? '',
+      landmark: selected.landmark ?? '',
+      city: selected.city,
+      state: selected.state ?? '',
+      postOffice: selected.post_office ?? '',
+      pincode: selected.postal_code,
+    }));
+    setIsPincodeValidated(Boolean(selected.city && selected.state && selected.post_office));
+  };
 
   const validatePromo = async () => {
     const code = promoInput.trim().toUpperCase();
@@ -96,12 +215,8 @@ export default function CheckoutPage() {
         setPromoError('Invalid or inactive promo code');
         return;
       }
-      if (promoData.expires_at && new Date(promoData.expires_at) < new Date()) {
-        setPromoError('This promo code has expired');
-        return;
-      }
-      if (promoData.usage_limit !== null && promoData.times_used >= promoData.usage_limit) {
-        setPromoError('This promo code has reached its usage limit');
+      if ((promoData.expires_at && new Date(promoData.expires_at) < new Date()) || (promoData.usage_limit !== null && promoData.times_used >= promoData.usage_limit)) {
+        setPromoError('Invalid or Inactive promo code');
         return;
       }
 
@@ -148,8 +263,13 @@ export default function CheckoutPage() {
       setFormError('Pincode must be 6 digits');
       return;
     }
+    if (!isPincodeValidated) {
+      setFormError('Please validate your pincode to auto-fill city/state before placing the order');
+      return;
+    }
 
-    setSubmitting(true);
+    setOrderPlacementState('placing');
+    setOrderPlacementError('');
 
     try {
       // Generate a client-side idempotency key (UUID v4 via crypto API)
@@ -179,7 +299,8 @@ export default function CheckoutPage() {
       const json = await res.json();
 
       if (!res.ok) {
-        setFormError(json.error ?? 'Failed to place order. Please try again.');
+        setOrderPlacementState('failed');
+        setOrderPlacementError(json.error ?? 'Failed to place order. Please try again.');
         return;
       }
 
@@ -190,10 +311,15 @@ export default function CheckoutPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          full_name: address.name.trim(),
+          nickname:
+            savedAddresses.find((entry) => entry.id === selectedAddressId)?.nickname ?? 'Checkout',
           address_line1: address.line1.trim(),
           address_line2: address.line2.trim() || null,
+          landmark: address.landmark.trim() || null,
           city: address.city.trim(),
           state: address.state.trim(),
+          post_office: address.postOffice.trim(),
           postal_code: address.pincode.trim(),
           country: 'India',
           phone: address.phone.trim(),
@@ -203,9 +329,8 @@ export default function CheckoutPage() {
       clearCart();
       router.push(`/orders/${json.data.id}?success=1`);
     } catch {
-      setFormError('Network error. Please check your connection and try again.');
-    } finally {
-      setSubmitting(false);
+      setOrderPlacementState('failed');
+      setOrderPlacementError('Network error. Please check your connection and try again.');
     }
   };
 
@@ -215,6 +340,42 @@ export default function CheckoutPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="animate-spin text-brand-primary-600" size={32} />
+      </div>
+    );
+  }
+
+  if (orderPlacementState === 'placing' || orderPlacementState === 'failed') {
+    const isFailed = orderPlacementState === 'failed';
+    return (
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center px-4">
+        <div className="w-full max-w-md bg-white border border-neutral-200 rounded-2xl shadow-sm p-8 text-center">
+          {isFailed ? (
+            <AlertCircle className="mx-auto text-status-danger-600 mb-4" size={40} />
+          ) : (
+            <Loader2 className="mx-auto animate-spin text-brand-primary-600 mb-4" size={40} />
+          )}
+          <h1 className="text-xl font-bold text-neutral-900 mb-2">
+            {isFailed ? 'Order placement failed' : 'Placing your order'}
+          </h1>
+          <p className="text-sm text-neutral-600 mb-6">
+            {isFailed
+              ? orderPlacementError || 'Something went wrong while placing your order.'
+              : 'Please wait while we confirm your order details.'}
+          </p>
+          {isFailed && (
+            <div className="flex items-center justify-center gap-3">
+              <button
+                onClick={() => {
+                  setOrderPlacementState('idle');
+                  setOrderPlacementError('');
+                }}
+                className="px-4 py-2.5 border border-neutral-200 rounded-lg text-sm hover:bg-neutral-50 transition"
+              >
+                Back to Checkout
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -251,6 +412,45 @@ export default function CheckoutPage() {
                 <h2 className="text-lg font-semibold text-neutral-900">Delivery Address</h2>
               </div>
 
+              {savedAddresses.length > 0 && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+                    Use saved address by label
+                  </label>
+                  <select
+                    value={selectedAddressId}
+                    onChange={(e) => handleSavedAddressSelect(e.target.value)}
+                    className="w-full border border-neutral-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-500 focus:border-transparent bg-white"
+                  >
+                    <option value="">Select label</option>
+                    {savedAddresses.map((saved) => (
+                      <option key={saved.id} value={saved.id}>
+                        {saved.nickname || 'Address'} - {saved.address_line1}
+                      </option>
+                    ))}
+                  </select>
+                  {isSavedAddressLocked && (
+                    <div className="mt-2 flex items-center justify-between gap-3">
+                      <p className="text-xs text-neutral-500">
+                        Address fields are locked while a saved label is selected.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedAddressId('');
+                          setIsPincodeValidated(false);
+                          setPincodeLookupError('');
+                          setAddress((prev) => ({ ...prev, city: '', state: '', postOffice: '' }));
+                        }}
+                        className="text-xs font-medium text-brand-primary-700 hover:text-brand-primary-800"
+                      >
+                        Use different address
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <InputField
                   label="Full Name"
@@ -258,6 +458,7 @@ export default function CheckoutPage() {
                   value={address.name}
                   onChange={handleAddressChange}
                   placeholder="Ramesh Kumar"
+                  disabled={isAddressLocked}
                   required
                 />
                 <InputField
@@ -268,6 +469,7 @@ export default function CheckoutPage() {
                   placeholder="9876543210"
                   inputMode="numeric"
                   maxLength={10}
+                  disabled={isAddressLocked}
                   required
                 />
                 <div className="sm:col-span-2">
@@ -277,6 +479,7 @@ export default function CheckoutPage() {
                     value={address.line1}
                     onChange={handleAddressChange}
                     placeholder="Flat 12, Sunrise Apartments, MG Road"
+                    disabled={isAddressLocked}
                     required
                   />
                 </div>
@@ -287,7 +490,47 @@ export default function CheckoutPage() {
                     value={address.line2}
                     onChange={handleAddressChange}
                     placeholder="Near Reliance Fresh"
+                    disabled={isAddressLocked}
                   />
+                </div>
+                <div className="sm:col-span-2">
+                  <InputField
+                    label="Landmark (optional)"
+                    name="landmark"
+                    value={address.landmark}
+                    onChange={handleAddressChange}
+                    placeholder="Near City Mall"
+                    disabled={isAddressLocked}
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+                    Pincode <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      name="pincode"
+                      value={address.pincode}
+                      onChange={handleAddressChange}
+                      placeholder="400001"
+                      inputMode="numeric"
+                      maxLength={6}
+                      required
+                      disabled={isSavedAddressLocked || pincodeLookupLoading}
+                      className="flex-1 border border-neutral-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-500 focus:border-transparent transition"
+                    />
+                    <button
+                      type="button"
+                      onClick={validatePincode}
+                      disabled={isSavedAddressLocked || pincodeLookupLoading || !/^\d{6}$/.test(address.pincode)}
+                      className="px-4 py-2.5 bg-brand-primary-600 text-white rounded-lg text-sm font-medium hover:bg-brand-primary-700 disabled:opacity-50 transition"
+                    >
+                      {pincodeLookupLoading ? <Loader2 size={16} className="animate-spin" /> : 'Validate'}
+                    </button>
+                  </div>
+                  {pincodeLookupError && (
+                    <p className="mt-1 text-xs text-status-danger-600">{pincodeLookupError}</p>
+                  )}
                 </div>
                 <InputField
                   label="City"
@@ -295,6 +538,7 @@ export default function CheckoutPage() {
                   value={address.city}
                   onChange={handleAddressChange}
                   placeholder="Mumbai"
+                  disabled
                   required
                 />
                 <div>
@@ -305,6 +549,7 @@ export default function CheckoutPage() {
                     name="state"
                     value={address.state}
                     onChange={handleAddressChange}
+                    disabled
                     required
                     className="w-full border border-neutral-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-500 focus:border-transparent bg-white"
                   >
@@ -315,13 +560,12 @@ export default function CheckoutPage() {
                   </select>
                 </div>
                 <InputField
-                  label="Pincode"
-                  name="pincode"
-                  value={address.pincode}
+                  label="Area / Post Office"
+                  name="postOffice"
+                  value={address.postOffice}
                   onChange={handleAddressChange}
-                  placeholder="400001"
-                  inputMode="numeric"
-                  maxLength={6}
+                  placeholder="Auto-filled from pincode"
+                  disabled
                   required
                 />
               </div>
@@ -437,20 +681,12 @@ export default function CheckoutPage() {
 
               <button
                 type="submit"
-                disabled={submitting}
                 className="w-full mt-5 bg-brand-primary-600 hover:bg-brand-primary-700 text-white font-semibold py-3.5 rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-60"
               >
-                {submitting ? (
-                  <>
-                    <Loader2 size={18} className="animate-spin" />
-                    Placing Order…
-                  </>
-                ) : (
-                  <>
-                    Place Order
-                    <ChevronRight size={18} />
-                  </>
-                )}
+                <>
+                  Place Order
+                  <ChevronRight size={18} />
+                </>
               </button>
 
               <p className="text-xs text-neutral-400 text-center mt-3">

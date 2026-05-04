@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { Fragment, useState, useEffect, useCallback } from 'react';
 import { formatCurrency } from '@/lib/utils';
 import {
   ShoppingCart,
@@ -164,7 +164,7 @@ export default function AdminOrdersPage() {
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <div className="relative flex-1">
+        <div className="relative flex-1 bg-white rounded-lg border border-gray-200">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
@@ -216,9 +216,8 @@ export default function AdminOrdersPage() {
                   const badgeCls = STATUS_BADGE[order.status] ?? 'bg-gray-100 text-gray-800 border-gray-200';
 
                   return (
-                    <>
+                    <Fragment key={order.id}>
                       <tr
-                        key={order.id}
                         className="hover:bg-gray-50 cursor-pointer transition"
                         onClick={() => setExpandedId(isExpanded ? null : order.id)}
                       >
@@ -328,7 +327,7 @@ export default function AdminOrdersPage() {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
               </tbody>

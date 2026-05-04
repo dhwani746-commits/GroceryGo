@@ -12,6 +12,8 @@ export interface ProductFilters {
   sort?: SortOption;
   category?: string;
   inStock?: boolean;
+  minPrice?: number;
+  maxPrice?: number;
 }
 
 const SELECT_COLS = 'id, name, slug, price, description, image_urls, stock_quantity, category';
@@ -63,6 +65,8 @@ export class ProductRepository {
 
     if (filters.category) q = q.eq('category', filters.category);
     if (filters.inStock)  q = q.gt('stock_quantity', 0);
+    if (filters.minPrice !== undefined) q = q.gte('price', filters.minPrice);
+    if (filters.maxPrice !== undefined) q = q.lte('price', filters.maxPrice);
 
     const sort = filters.sort ?? 'newest';
     if (sort === 'price_asc')  q = q.order('price', { ascending: true });
@@ -108,6 +112,8 @@ export class ProductRepository {
 
     if (filters.category) q = q.eq('category', filters.category);
     if (filters.inStock)  q = q.gt('stock_quantity', 0);
+    if (filters.minPrice !== undefined) q = q.gte('price', filters.minPrice);
+    if (filters.maxPrice !== undefined) q = q.lte('price', filters.maxPrice);
 
     const sort = filters.sort ?? 'newest';
     if (sort === 'price_asc')  q = q.order('price', { ascending: true });

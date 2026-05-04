@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 
 type Address = {
   id: string;
+  nickname: string;
   address_line1: string;
   address_line2?: string | null;
   city: string;
@@ -32,6 +33,7 @@ type Address = {
 };
 
 const EMPTY_FORM = {
+  nickname: 'Home',
   address_line1: '',
   address_line2: '',
   city: '',
@@ -100,6 +102,7 @@ export default function AddressesPage() {
   const openEditForm = (a: Address) => {
     setEditingId(a.id);
     setForm({
+      nickname: a.nickname ?? 'Home',
       address_line1: a.address_line1,
       address_line2: a.address_line2 ?? '',
       city: a.city,
@@ -137,6 +140,10 @@ export default function AddressesPage() {
       setFormError('Address line 1, city, and postal code are required.');
       return;
     }
+    if (!form.nickname.trim()) {
+      setFormError('Address label is required.');
+      return;
+    }
     if (form.phone && !/^\d{10}$/.test(form.phone)) {
       setFormError('Phone must be a 10-digit number.');
       return;
@@ -146,6 +153,7 @@ export default function AddressesPage() {
     try {
       const payload = {
         address_line1: form.address_line1.trim(),
+        nickname: form.nickname.trim(),
         address_line2: form.address_line2.trim() || null,
         city: form.city.trim(),
         state: form.state.trim() || null,
@@ -255,6 +263,28 @@ export default function AddressesPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+                  Address Label <span className="text-red-500">*</span>
+                </label>
+                <input
+                  name="nickname"
+                  value={form.nickname}
+                  onChange={handleChange}
+                  placeholder="Home, Work, Custom"
+                  required
+                  maxLength={40}
+                  list="address-nickname-options"
+                  className="w-full border border-neutral-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-500 focus:border-transparent transition"
+                />
+                <datalist id="address-nickname-options">
+                  <option value="Home" />
+                  <option value="Work" />
+                  <option value="Family" />
+                  <option value="Custom" />
+                </datalist>
+              </div>
+
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-neutral-700 mb-1.5">
                   Address Line 1 <span className="text-red-500">*</span>
@@ -437,6 +467,9 @@ export default function AddressesPage() {
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-neutral-700 bg-neutral-100 border border-neutral-200 px-2 py-0.5 rounded-full">
+                          {a.nickname || 'Home'}
+                        </span>
                         <p className="font-semibold text-neutral-900 text-sm">
                           {a.address_line1}
                           {a.address_line2 ? `, ${a.address_line2}` : ''}

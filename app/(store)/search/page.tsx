@@ -4,6 +4,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ProductCard } from '@/components/store/ProductCard';
 import { Header } from '@/components/shared/Header';
+import { PriceRangeFilter } from '@/components/store/PriceRangeFilter';
 import {
   Search as SearchIcon,
   ChevronLeft,
@@ -40,6 +41,8 @@ interface Meta {
 type SortOption = 'newest' | 'price_asc' | 'price_desc';
 
 const PER_PAGE = 12;
+const DEFAULT_MIN_PRICE = 100;
+const DEFAULT_MAX_PRICE = 50000;
 
 const SORT_LABELS: Record<SortOption, string> = {
   newest: 'Newest First',
@@ -62,6 +65,8 @@ export default function SearchPage() {
   const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
   const sort = (searchParams.get('sort') ?? 'newest') as SortOption;
   const inStock = searchParams.get('in_stock') === '1';
+  const minPrice = searchParams.get('min_price') ? parseFloat(searchParams.get('min_price')!) : undefined;
+  const maxPrice = searchParams.get('max_price') ? parseFloat(searchParams.get('max_price')!) : undefined;
 
   const [products, setProducts] = useState<Product[]>([]);
   const [meta, setMeta] = useState<Meta | null>(null);
@@ -79,7 +84,6 @@ export default function SearchPage() {
     if (filterOpen) document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [filterOpen]);
-
 
 
   const fetchPage = useCallback(async (params: URLSearchParams) => {
@@ -102,6 +106,14 @@ export default function SearchPage() {
     const params = new URLSearchParams({ page: String(page), per_page: String(PER_PAGE), sort });
     if (query) params.set('q', query);
     if (inStock) params.set('in_stock', '1');
+    if (minPrice !== undefined) params.set('min_price', String(minPrice));
+    if (maxPrice !== undefined) params.set('max_price', String(maxPrice));
+    fetchPage(params);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [query, page, sort, inStock, minPrice, maxPrice, fetchPage]);  useEffect(() => {
+    const params = new URLSearchParams({ page: String(page), per_page: String(PER_PAGE), sort });
+    if (query) params.set('q', query);
+    if (inStock) params.set('in_stock', '1');
     fetchPage(params);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [query, page, sort, inStock, fetchPage]);
@@ -112,6 +124,8 @@ export default function SearchPage() {
     if (query) p.set('q', query);
     if (sort) p.set('sort', sort);
     if (inStock) p.set('in_stock', '1');
+    if (minPrice !== undefined) p.set('min_price', String(minPrice));
+    if (maxPrice !== undefined) p.set('max_price', String(maxPrice));
     p.set('page', '1');
 
     for (const [key, val] of Object.entries(overrides)) {
@@ -127,6 +141,8 @@ export default function SearchPage() {
     if (query) params.set('q', query);
     if (sort) params.set('sort', sort);
     if (inStock) params.set('in_stock', '1');
+    if (minPrice !== undefined) params.set('min_price', String(minPrice));
+    if (maxPrice !== undefined) params.set('max_price', String(maxPrice));
     params.set('page', String(p));
     router.push(`/search?${params.toString()}`);
   };
@@ -137,7 +153,7 @@ export default function SearchPage() {
     router.push(`/search?${p.toString()}`);
   };
 
-  const hasActiveFilters = sort !== 'newest' || inStock;
+  const hasActiveFilters = sort !== 'newest' || inStock || minPrice !== undefined || maxPrice !== undefined;
   const pageRange = meta ? getPageRange(page, meta.totalPages) : [];
 
   const SkeletonGrid = () => (
@@ -238,6 +254,27 @@ export default function SearchPage() {
                       </div>
                     </div>
 
+                    {/* Price Range Filter */}
+                    <div>
+                      <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">Price Range</p>
+                      <PriceRangeFilter
+                        minPrice={DEFAULT_MIN_PRICE}
+                        maxPrice={DEFAULT_MAX_PRICE}
+                        currentMin={minPrice}
+                        currentMax={maxPrice}
+                        onApply={(min, max) => {
+                          const params = new URLSearchParams();
+                          if (query) params.set('q', query);
+                          if (sort) params.set('sort', sort);
+                          if (inStock) params.set('in_stock', '1');
+                          params.set('min_price', String(min));
+                          params.set('max_price', String(max));
+                          params.set('page', '1');
+                          router.push(`/search?${params.toString()}`);
+                          setFilterOpen(false);
+                        }}
+                      />
+                    </div>
 
                     {/* In stock toggle */}
                     <div>

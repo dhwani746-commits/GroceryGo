@@ -16,7 +16,7 @@ const NAV_LINKS = [
   { href: '/admin/products',  label: 'Products',    icon: Package },
   { href: '/admin/orders',    label: 'Orders',      icon: ShoppingCart },
   { href: '/admin/promos',    label: 'Promo Codes', icon: Tag },
-  { href: '/admin/account',   label: 'Settings',    icon: Settings },
+  { href: '/admin/settings',   label: 'Settings',    icon: Settings },
 ];
 
 export function AdminSidebar({ isOpen, onClose, username }: AdminSidebarProps) {
