@@ -15,6 +15,7 @@ import {
   PackageX,
 } from 'lucide-react';
 import Link from 'next/link';
+import { RelatedProducts } from '@/components/store/RelatedProducts';
 
 interface Product {
   id: string;
@@ -41,8 +42,8 @@ type SortOption = 'newest' | 'price_asc' | 'price_desc';
 const PER_PAGE = 12;
 
 const SORT_LABELS: Record<SortOption, string> = {
-  newest:     'Newest First',
-  price_asc:  'Price: Low to High',
+  newest: 'Newest First',
+  price_asc: 'Price: Low to High',
   price_desc: 'Price: High to Low',
 };
 
@@ -57,16 +58,14 @@ export default function SearchPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const query    = searchParams.get('q') ?? '';
-  const page     = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
-  const sort     = (searchParams.get('sort') ?? 'newest') as SortOption;
-  const category = searchParams.get('category') ?? '';
-  const inStock  = searchParams.get('in_stock') === '1';
+  const query = searchParams.get('q') ?? '';
+  const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
+  const sort = (searchParams.get('sort') ?? 'newest') as SortOption;
+  const inStock = searchParams.get('in_stock') === '1';
 
-  const [products, setProducts]     = useState<Product[]>([]);
-  const [meta, setMeta]             = useState<Meta | null>(null);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [loading, setLoading]       = useState(true);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [meta, setMeta] = useState<Meta | null>(null);
+  const [loading, setLoading] = useState(true);
   const [filterOpen, setFilterOpen] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
 
@@ -81,13 +80,7 @@ export default function SearchPage() {
     return () => document.removeEventListener('mousedown', handler);
   }, [filterOpen]);
 
-  // Fetch categories once
-  useEffect(() => {
-    fetch('/api/categories')
-      .then((r) => r.json())
-      .then((j) => setCategories(j.data ?? []))
-      .catch(console.error);
-  }, []);
+
 
   const fetchPage = useCallback(async (params: URLSearchParams) => {
     setLoading(true);
@@ -107,21 +100,18 @@ export default function SearchPage() {
 
   useEffect(() => {
     const params = new URLSearchParams({ page: String(page), per_page: String(PER_PAGE), sort });
-    if (query)    params.set('q', query);
-    if (category) params.set('category', category);
-    if (inStock)  params.set('in_stock', '1');
+    if (query) params.set('q', query);
+    if (inStock) params.set('in_stock', '1');
     fetchPage(params);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [query, page, sort, category, inStock, fetchPage]);
+  }, [query, page, sort, inStock, fetchPage]);
 
-  /** Push a new URL preserving all current params except overrides */
+  /** Push a new URL preserving all current params except overrides, resetting to page 1 */
   const pushFilter = (overrides: Record<string, string | null>) => {
     const p = new URLSearchParams();
-    if (query)    p.set('q', query);
-    if (sort)     p.set('sort', sort);
-    if (category) p.set('category', category);
-    if (inStock)  p.set('in_stock', '1');
-    // Reset to page 1 on filter change
+    if (query) p.set('q', query);
+    if (sort) p.set('sort', sort);
+    if (inStock) p.set('in_stock', '1');
     p.set('page', '1');
 
     for (const [key, val] of Object.entries(overrides)) {
@@ -134,10 +124,9 @@ export default function SearchPage() {
 
   const navigate = (p: number) => {
     const params = new URLSearchParams();
-    if (query)    params.set('q', query);
-    if (sort)     params.set('sort', sort);
-    if (category) params.set('category', category);
-    if (inStock)  params.set('in_stock', '1');
+    if (query) params.set('q', query);
+    if (sort) params.set('sort', sort);
+    if (inStock) params.set('in_stock', '1');
     params.set('page', String(p));
     router.push(`/search?${params.toString()}`);
   };
@@ -148,7 +137,7 @@ export default function SearchPage() {
     router.push(`/search?${p.toString()}`);
   };
 
-  const hasActiveFilters = sort !== 'newest' || !!category || inStock;
+  const hasActiveFilters = sort !== 'newest' || inStock;
   const pageRange = meta ? getPageRange(page, meta.totalPages) : [];
 
   const SkeletonGrid = () => (
@@ -196,14 +185,6 @@ export default function SearchPage() {
             {/* Filter / Sort controls */}
             <div className="flex items-center gap-2 flex-shrink-0" ref={filterRef}>
               {/* Active filter chips */}
-              {category && (
-                <button
-                  onClick={() => pushFilter({ category: null, page: '1' })}
-                  className="inline-flex items-center gap-1 text-xs font-medium text-brand-primary-700 bg-brand-primary-50 border border-brand-primary-200 px-2.5 py-1.5 rounded-full hover:bg-brand-primary-100 transition"
-                >
-                  {category} <X size={11} />
-                </button>
-              )}
               {inStock && (
                 <button
                   onClick={() => pushFilter({ in_stock: null, page: '1' })}
@@ -225,11 +206,10 @@ export default function SearchPage() {
               <div className="relative">
                 <button
                   onClick={() => setFilterOpen((v) => !v)}
-                  className={`inline-flex items-center gap-1.5 text-sm font-medium px-3.5 py-2 rounded-xl border shadow-sm transition ${
-                    hasActiveFilters
+                  className={`inline-flex items-center gap-1.5 text-sm font-medium px-3.5 py-2 rounded-xl border shadow-sm transition ${hasActiveFilters
                       ? 'bg-brand-primary-600 text-white border-brand-primary-600'
                       : 'bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-50'
-                  }`}
+                    }`}
                 >
                   <SlidersHorizontal size={14} />
                   {hasActiveFilters ? 'Filtered' : 'Sort & Filter'}
@@ -247,11 +227,10 @@ export default function SearchPage() {
                           <button
                             key={val}
                             onClick={() => pushFilter({ sort: val, page: '1' })}
-                            className={`w-full text-left text-sm px-3 py-2 rounded-lg transition ${
-                              sort === val
+                            className={`w-full text-left text-sm px-3 py-2 rounded-lg transition ${sort === val
                                 ? 'bg-brand-primary-50 text-brand-primary-700 font-medium'
                                 : 'text-neutral-700 hover:bg-neutral-50'
-                            }`}
+                              }`}
                           >
                             {label}
                           </button>
@@ -259,46 +238,16 @@ export default function SearchPage() {
                       </div>
                     </div>
 
-                    {/* Category */}
-                    {categories.length > 0 && (
-                      <div>
-                        <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">Category</p>
-                        <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
-                          <button
-                            onClick={() => pushFilter({ category: null, page: '1' })}
-                            className={`w-full text-left text-sm px-3 py-2 rounded-lg transition ${
-                              !category ? 'bg-brand-primary-50 text-brand-primary-700 font-medium' : 'text-neutral-700 hover:bg-neutral-50'
-                            }`}
-                          >
-                            All Categories
-                          </button>
-                          {categories.map((cat) => (
-                            <button
-                              key={cat}
-                              onClick={() => pushFilter({ category: cat, page: '1' })}
-                              className={`w-full text-left text-sm px-3 py-2 rounded-lg transition capitalize ${
-                                category === cat
-                                  ? 'bg-brand-primary-50 text-brand-primary-700 font-medium'
-                                  : 'text-neutral-700 hover:bg-neutral-50'
-                              }`}
-                            >
-                              {cat}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
 
                     {/* In stock toggle */}
                     <div>
                       <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">Availability</p>
                       <button
                         onClick={() => pushFilter({ in_stock: inStock ? null : '1', page: '1' })}
-                        className={`w-full flex items-center justify-between text-sm px-3 py-2 rounded-lg border transition ${
-                          inStock
+                        className={`w-full flex items-center justify-between text-sm px-3 py-2 rounded-lg border transition ${inStock
                             ? 'border-status-success-400 bg-status-success-50 text-status-success-700 font-medium'
                             : 'border-neutral-200 text-neutral-700 hover:bg-neutral-50'
-                        }`}
+                          }`}
                       >
                         <span>In Stock Only</span>
                         <span className={`w-9 h-5 rounded-full flex items-center px-0.5 transition-colors ${inStock ? 'bg-status-success-500 justify-end' : 'bg-neutral-200 justify-start'}`}>
@@ -370,11 +319,10 @@ export default function SearchPage() {
                       key={p}
                       onClick={() => navigate(p as number)}
                       aria-current={p === page ? 'page' : undefined}
-                      className={`flex items-center justify-center w-9 h-9 rounded-lg text-sm font-medium transition shadow-sm border ${
-                        p === page
+                      className={`flex items-center justify-center w-9 h-9 rounded-lg text-sm font-medium transition shadow-sm border ${p === page
                           ? 'bg-brand-primary-600 text-white border-brand-primary-600'
                           : 'bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-50'
-                      }`}
+                        }`}
                     >
                       {p}
                     </button>
@@ -393,6 +341,27 @@ export default function SearchPage() {
             </div>
           )}
 
+          {/* Related Products — anchored to the most common category on this page.
+               Only shown when the grid has results; excludes all visible IDs. */}
+          {!loading && products.length > 0 && (() => {
+            // Find the modal (most frequent) category among current results
+            const freq: Record<string, number> = {};
+            for (const p of products) {
+              if (p.category) freq[p.category] = (freq[p.category] ?? 0) + 1;
+            }
+            const topCategory = Object.entries(freq).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+            const excludeIds  = products.map((p) => p.id);
+
+            return (
+              <div className="mt-4">
+                <RelatedProducts
+                  productId={null}
+                  category={topCategory}
+                  excludeIds={excludeIds}
+                />
+              </div>
+            );
+          })()}
         </div>
       </div>
     </>
