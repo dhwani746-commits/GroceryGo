@@ -70,6 +70,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     postal_code: pincodeMeta.normalizedPincode,
     country: typeof body.country === 'string' ? body.country.trim() : undefined,
     phone: body.phone ? String(body.phone).trim() : null,
+    post_office: pincodeMeta.postOffice,
     label: typeof body.label === 'string' ? body.label.trim() : 'Home',
     is_default: Boolean(body.is_default),
   };

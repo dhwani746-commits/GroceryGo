@@ -29,6 +29,7 @@ type Address = {
   postal_code: string;
   country: string;
   phone?: string | null;
+  post_office?: string | null;
   is_default?: boolean;
 };
 
@@ -41,6 +42,7 @@ const EMPTY_FORM = {
   postal_code: '',
   country: 'India',
   phone: '',
+  post_office: '',
   is_default: false,
 };
 
@@ -64,6 +66,7 @@ export default function AddressesPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [formError, setFormError] = useState('');
   const [pincodeLookupLoading, setPincodeLookupLoading] = useState(false);
   const [pincodeLookupError, setPincodeLookupError] = useState('');
@@ -113,6 +116,7 @@ export default function AddressesPage() {
       postal_code: a.postal_code,
       country: a.country,
       phone: a.phone ?? '',
+      post_office: a.post_office ?? '',
       is_default: !!a.is_default,
     });
     setFormError('');
@@ -187,6 +191,7 @@ export default function AddressesPage() {
         ...f,
         city: data.city,
         state: data.state,
+        post_office: data.postOffice,
       }));
       setIsPincodeValidated(true);
     } catch {
@@ -259,14 +264,18 @@ export default function AddressesPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Remove this address from your saved addresses?')) return;
-    setDeletingId(id);
+  const handleDeleteClick = (id: string) => {
+    setDeleteConfirmId(id);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirmId) return;
+    setDeletingId(deleteConfirmId);
     try {
-      const res = await fetch(`/api/addresses/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/addresses/${deleteConfirmId}`, { method: 'DELETE' });
       if (res.ok) {
         toast.success('Address removed');
-        setAddresses((prev) => prev.filter((a) => a.id !== id));
+        setAddresses((prev) => prev.filter((a) => a.id !== deleteConfirmId));
       } else {
         toast.error('Failed to remove address');
       }
@@ -274,7 +283,16 @@ export default function AddressesPage() {
       toast.error('Network error');
     } finally {
       setDeletingId(null);
+      setDeleteConfirmId(null);
     }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteConfirmId(null);
+  };
+
+  const handleDelete = async (id: string) => {
+    handleDeleteClick(id);
   };
 
   if (authLoading) {
@@ -310,7 +328,7 @@ export default function AddressesPage() {
               className="flex items-center gap-2 px-4 py-2.5 bg-brand-primary-600 text-white rounded-xl text-sm font-medium hover:bg-brand-primary-700 transition shadow-sm"
             >
               <Plus size={16} />
-              Add Address
+              Address
             </button>
           )}
         </div>
@@ -413,6 +431,20 @@ export default function AddressesPage() {
                     <option key={s} value={s}>{s}</option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+                  Post Office <span className="text-neutral-400 font-normal">(auto-filled)</span>
+                </label>
+                <input
+                  name="post_office"
+                  value={form.post_office}
+                  onChange={handleChange}
+                  placeholder="Auto-filled from pincode"
+                  disabled
+                  className="w-full border border-neutral-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-500 focus:border-transparent bg-neutral-50 transition"
+                />
               </div>
 
               <div>
@@ -576,6 +608,11 @@ export default function AddressesPage() {
                       <p className="text-sm text-neutral-500 mt-0.5">
                         {a.city}{a.state ? `, ${a.state}` : ''} — {a.postal_code}
                       </p>
+                      {a.post_office && (
+                        <p className="text-sm text-neutral-500 mt-0.5">
+                          Post Office: {a.post_office}
+                        </p>
+                      )}
                       <p className="text-sm text-neutral-400">{a.country}</p>
                       {a.phone && (
                         <p className="text-sm text-neutral-500 mt-1 flex items-center gap-1">
@@ -612,6 +649,46 @@ export default function AddressesPage() {
           </div>
         )}
       </main>
+
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirmId && (
+        <div className="fixed inset-0 bg-white/80 border border-slate-200 rounded-xl p-4 shadow-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-status-danger-50 rounded-full flex items-center justify-center">
+                <Trash2 size={20} className="text-status-danger-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-neutral-900">Remove Address</h3>
+            </div>
+            <p className="text-sm text-neutral-600 mb-6">
+              Are you sure you want to remove this address from your saved addresses? This action cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={handleDeleteCancel}
+                disabled={deletingId !== null}
+                className="px-4 py-2.5 text-sm font-medium text-neutral-700 bg-neutral-100 hover:bg-neutral-200 rounded-lg transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={deletingId !== null}
+                className="px-4 py-2.5 text-sm font-medium text-white bg-status-danger-500 hover:bg-status-danger-700 rounded-lg transition disabled:opacity-50 flex items-center gap-2"
+              >
+                {deletingId ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Removing...
+                  </>
+                ) : (
+                  'Remove Address'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

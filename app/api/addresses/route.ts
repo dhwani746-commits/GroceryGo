@@ -91,6 +91,7 @@ export async function POST(req: Request) {
       postal_code: pincodeMeta.normalizedPincode,
       country: String(country).trim(),
       phone: phone ? String(phone).trim() : null,
+      post_office: pincodeMeta.postOffice,
       is_default: !!is_default,
       label: typeof label === 'string' ? label.trim() : 'Home',
     },
