@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+/* ==========================================
+   ROOT VARIABLES
+========================================== */
+:root {
+  --background: #F8F8F8;
+  --foreground: #1A1A1A;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0F0F0F;
+    --foreground: #FFFFFF;
+  }
+}
+
+/* ==========================================
+  TAILWIND v4 THEME TOKENS
+========================================== */
+@theme {
+  /* Brand Primary */
+  --color-brand-primary-900: #0D2F5C;
+  --color-brand-primary-700: #1A5EA8;
+  --color-brand-primary-600: #2172C7;
+  --color-brand-primary-500: #3A8FE8;
+  --color-brand-primary-200: #B3D4F7;
+  --color-brand-primary-50: #EBF4FF;
+
+  /* Brand Accent */
+  --color-brand-accent-700: #B85A00;
+  --color-brand-accent-500: #F07B00;
+  --color-brand-accent-200: #FFD5A0;
+  --color-brand-accent-50: #FFF4E6;
+
+  /* Neutral */
+  --color-neutral-950: #0F0F0F;
+  --color-neutral-900: #1A1A1A;
+  --color-neutral-700: #3D3D3D;
+  --color-neutral-500: #717171;
+  --color-neutral-400: #9E9E9E;
+  --color-neutral-300: #C8C8C8;
+  --color-neutral-200: #E3E3E3;
+  --color-neutral-100: #F2F2F2;
+  --color-neutral-50: #F8F8F8;
+  --color-neutral-0: #FFFFFF;
+
+  /* Success */
+  --color-status-success-700: #1A6B3C;
+  --color-status-success-500: #28A460;
+  --color-status-success-100: #D4F0E0;
+  --color-status-success-50: #EDFAF3;
+
+  /* Warning */
+  --color-status-warning-700: #7A4800;
+  --color-status-warning-500: #D08000;
+  --color-status-warning-100: #FDEAB0;
+  --color-status-warning-50: #FEF7DC;
+
+  /* Danger */
+  --color-status-danger-700: #8B1A1A;
+  --color-status-danger-500: #D83030;
+  --color-status-danger-100: #FBDADA;
+  --color-status-danger-50: #FEF2F2;
+
+  /* Info */
+  --color-status-info-700: #1A5EA8;
+  --color-status-info-500: #2172C7;
+  --color-status-info-50: #EBF4FF;
+
+  /* Color for Dahboard Sidebar */
+  --color-sidebar-bg: #F2F3FC;
+
+  /* Custom Text Sizes */
+  --text-xs: 11px;
+  --text-sm: 13px;
+  --text-base: 15px;
+  --text-md: 17px;
+  --text-lg: 20px;
+  --text-xl: 24px;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+}
+
+/* ==========================================
+   GLOBAL RESET
+========================================== */
+* {
+  @apply box-border;
+}
+
+html {
+  @apply scroll-smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  @apply bg-neutral-50 text-neutral-900 font-sans;
+}
+
+input,
+textarea,
+select {
+  font-family: inherit;
+}
+
+button {
+  @apply cursor-pointer;
+}
