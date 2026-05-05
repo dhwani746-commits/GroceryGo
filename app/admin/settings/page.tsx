@@ -173,7 +173,7 @@ export default function AdminSettingsPage() {
       </div>
       <p className="text-sm text-gray-500 mb-8">Manage your account and storefront details</p>
 
-      <div className="flex gap-1 border-b border-gray-200 mb-8 overflow-x-auto">
+      <div className="flex gap-1 border-b border-gray-200 mb-8">
         {tabs.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -181,8 +181,8 @@ export default function AdminSettingsPage() {
             onClick={() => setTab(id)}
             className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 -mb-px transition whitespace-nowrap ${
               tab === id
-                ? 'border-brand-primary-600 text-brand-primary-700'
-                : 'border-transparent text-gray-500 hover:text-gray-800'
+                ? 'border-brand-primary-600 text-brand-primary-700 border border-brand-primary-600 bg-white rounded-lg'
+                : 'border-transparent text-gray-500 hover:text-brand-primary-700'
             }`}
           >
             <Icon size={16} />

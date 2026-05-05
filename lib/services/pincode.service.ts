@@ -24,8 +24,9 @@ async function getPincodeClient(): Promise<PincodeClient> {
       if (!message.includes('data file not found')) {
         throw error;
       }
-      const browserModule = await import('india-pincode/browser');
-      return await browserModule.getIndiaPincode();
+      // Fallback: try direct import without browser-specific path
+      // The package should handle browser/Node.js differences internally
+      return getIndiaPincode();
     }
   })();
 

@@ -40,7 +40,13 @@ export interface Order {
 
 export interface CreateOrderInput {
   customerId: string;
-  items: Array<{ productId: string; quantity: number; }>;
+  items: Array<{ 
+    productId: string; 
+    quantity: number; 
+    productName: string;
+    unitPrice: number;
+    lineTotal: number;
+  }>;
   deliveryAddress: DeliveryAddress;
   subtotal: number;
   discountAmount: number;
@@ -81,7 +87,7 @@ export class OrderRepository {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return (data ?? []) as Order[];
+    return (data ?? []) as unknown as Order[];
   }
 
   static async getOrderById(orderId: string, userId: string): Promise<Order | null> {
@@ -119,7 +125,7 @@ export class OrderRepository {
       if (error.code === 'PGRST116') return null; // Row not found
       throw error;
     }
-    return data as Order;
+    return data as unknown as Order;
   }
 
   /**

@@ -1,6 +1,8 @@
 'use client';
+export const dynamic = "force-dynamic";
 
 import { useSearchParams, useRouter } from 'next/navigation';
+import { Suspense } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ProductCard } from '@/components/store/ProductCard';
 import { Header } from '@/components/shared/Header';
@@ -57,7 +59,7 @@ function getPageRange(current: number, total: number): (number | '…')[] {
   return [1, '…', current - 1, current, current + 1, '…', total];
 }
 
-export default function SearchPage() {
+function SearchPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -402,5 +404,13 @@ export default function SearchPage() {
         </div>
       </div>
     </>
+  );
+}
+
+export default function SearchPageWrapper() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SearchPage />
+    </Suspense>
   );
 }
