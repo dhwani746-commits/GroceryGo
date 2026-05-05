@@ -30,24 +30,19 @@ export function PriceRangeFilter({
     setLocalMax(currentMax ?? maxPrice);
   }, [currentMin, currentMax, minPrice, maxPrice]);
 
-  const handleMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = Math.min(Number(e.target.value), localMax - 100);
-    setLocalMin(value);
-  };
-
-  const handleMaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = Math.max(Number(e.target.value), localMin + 100);
-    setLocalMax(value);
-  };
-
   const handleMinInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = Math.min(Number(e.target.value) || minPrice, localMax - 100);
-    setLocalMin(value);
+    const value = Number(e.target.value) || 0;
+    const minValue = Math.max(100, minPrice);
+    const maxValue = Math.max(localMax - 100, minValue + 100);
+    const clampedValue = Math.min(Math.max(value, minValue), maxValue);
+    setLocalMin(clampedValue);
   };
 
   const handleMaxInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = Math.max(Number(e.target.value) || maxPrice, localMin + 100);
-    setLocalMax(value);
+    const value = Number(e.target.value) || 0;
+    const minValue = Math.max(localMin + 100, 100);
+    const clampedValue = Math.max(value, minValue);
+    setLocalMax(clampedValue);
   };
 
   const handleApply = () => {
@@ -60,56 +55,8 @@ export function PriceRangeFilter({
     onApply(minPrice, maxPrice);
   };
 
-  const percentMin = ((localMin - minPrice) / (maxPrice - minPrice)) * 100;
-  const percentMax = ((localMax - minPrice) / (maxPrice - minPrice)) * 100;
-
   return (
     <div className="space-y-4">
-      {/* Range Slider with Track */}
-      <div className="space-y-2">
-        <div className="relative h-8 flex items-center">
-          {/* Background track */}
-          <div className="absolute w-full h-1 bg-neutral-200 rounded-full pointer-events-none" />
-
-          {/* Filled track (between min and max) */}
-          <div
-            className="absolute h-1 bg-brand-primary-600 rounded-full pointer-events-none"
-            style={{
-              left: `${percentMin}%`,
-              right: `${100 - percentMax}%`,
-            }}
-          />
-
-          {/* Min slider - must come after max so it appears on top when overlapping */}
-          <input
-            type="range"
-            min={minPrice}
-            max={maxPrice}
-            value={localMin}
-            onChange={handleMinChange}
-            className="absolute w-full h-1 appearance-none bg-transparent rounded-lg cursor-pointer range-input"
-            style={{ zIndex: localMin > maxPrice - (maxPrice - minPrice) / 2 ? 5 : 3 }}
-          />
-
-          {/* Max slider */}
-          <input
-            type="range"
-            min={minPrice}
-            max={maxPrice}
-            value={localMax}
-            onChange={handleMaxChange}
-            className="absolute w-full h-1 appearance-none bg-transparent rounded-lg cursor-pointer range-input"
-            style={{ zIndex: 4 }}
-          />
-        </div>
-
-        {/* Display current range */}
-        <div className="flex justify-between text-xs text-neutral-600 px-1">
-          <span>₹{localMin}</span>
-          <span>₹{localMax}</span>
-        </div>
-      </div>
-
       {/* Price Input Fields */}
       <div className="flex gap-2 items-end">
         <div className="flex-1">
@@ -121,8 +68,9 @@ export function PriceRangeFilter({
               value={localMin}
               onChange={handleMinInputChange}
               className="flex-1 px-2 py-2 text-sm border-0 outline-none bg-transparent"
-              min={minPrice}
+              min={Math.max(100, minPrice)}
               max={localMax - 100}
+              placeholder={Math.max(100, minPrice).toString()}
             />
           </div>
         </div>
@@ -138,8 +86,9 @@ export function PriceRangeFilter({
               value={localMax}
               onChange={handleMaxInputChange}
               className="flex-1 px-2 py-2 text-sm border-0 outline-none bg-transparent"
-              min={localMin + 100}
+              min={Math.max(localMin + 100, 100)}
               max={maxPrice}
+              placeholder={maxPrice.toString()}
             />
           </div>
         </div>
@@ -160,45 +109,6 @@ export function PriceRangeFilter({
           Reset
         </button>
       </div>
-
-      <style jsx>{`
-        .range-input {
-          -webkit-appearance: none;
-          width: 100%;
-        }
-
-        .range-input::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          appearance: none;
-          width: 20px;
-          height: 20px;
-          border-radius: 50%;
-          background: white;
-          border: 3px solid #2563eb;
-          cursor: pointer;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-
-        .range-input::-moz-range-thumb {
-          width: 20px;
-          height: 20px;
-          border-radius: 50%;
-          background: white;
-          border: 3px solid #2563eb;
-          cursor: pointer;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-
-        .range-input::-webkit-slider-runnable-track {
-          background: transparent;
-          border: none;
-        }
-
-        .range-input::-moz-range-track {
-          background: transparent;
-          border: none;
-        }
-      `}</style>
     </div>
   );
 }

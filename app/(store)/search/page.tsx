@@ -74,6 +74,7 @@ function SearchPage() {
   const [meta, setMeta] = useState<Meta | null>(null);
   const [loading, setLoading] = useState(true);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [priceRange, setPriceRange] = useState({ min: DEFAULT_MIN_PRICE, max: DEFAULT_MAX_PRICE });
   const filterRef = useRef<HTMLDivElement>(null);
 
   // Close filter dropdown on outside click
@@ -87,6 +88,25 @@ function SearchPage() {
     return () => document.removeEventListener('mousedown', handler);
   }, [filterOpen]);
 
+
+  const fetchPriceRange = useCallback(async () => {
+    try {
+      const res = await fetch('/api/products');
+      if (!res.ok) throw new Error('fetch failed');
+      const json = await res.json();
+      const allProducts = json.data ?? [];
+      
+      if (allProducts.length > 0) {
+        const prices = allProducts.map((p: Product) => parseFloat(p.price));
+        const minPrice = Math.floor(Math.min(...prices));
+        const maxPrice = Math.ceil(Math.max(...prices));
+        setPriceRange({ min: minPrice, max: maxPrice });
+      }
+    } catch (error) {
+      console.error('Failed to fetch price range:', error);
+      // Keep default values if fetch fails
+    }
+  }, []);
 
   const fetchPage = useCallback(async (params: URLSearchParams) => {
     setLoading(true);
@@ -105,6 +125,10 @@ function SearchPage() {
   }, []);
 
   useEffect(() => {
+    fetchPriceRange();
+  }, [fetchPriceRange]);
+
+  useEffect(() => {
     const params = new URLSearchParams({ page: String(page), per_page: String(PER_PAGE), sort });
     if (query) params.set('q', query);
     if (inStock) params.set('in_stock', '1');
@@ -112,13 +136,7 @@ function SearchPage() {
     if (maxPrice !== undefined) params.set('max_price', String(maxPrice));
     fetchPage(params);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [query, page, sort, inStock, minPrice, maxPrice, fetchPage]);  useEffect(() => {
-    const params = new URLSearchParams({ page: String(page), per_page: String(PER_PAGE), sort });
-    if (query) params.set('q', query);
-    if (inStock) params.set('in_stock', '1');
-    fetchPage(params);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [query, page, sort, inStock, fetchPage]);
+  }, [query, page, sort, inStock, minPrice, maxPrice, fetchPage]);
 
   /** Push a new URL preserving all current params except overrides, resetting to page 1 */
   const pushFilter = (overrides: Record<string, string | null>) => {
@@ -180,7 +198,7 @@ function SearchPage() {
         <div className="max-w-7xl mx-auto px-4 py-8">
 
           {/* Page header */}
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6 sm:gap-6">
             <div>
               <Link
                 href="/"
@@ -201,7 +219,7 @@ function SearchPage() {
             </div>
 
             {/* Filter / Sort controls */}
-            <div className="flex items-center gap-2 flex-shrink-0" ref={filterRef}>
+            <div className="flex items-center gap-2 flex-shrink-0 justify-end" ref={filterRef}>
               {/* Active filter chips */}
               {inStock && (
                 <button
@@ -235,7 +253,8 @@ function SearchPage() {
                 </button>
 
                 {filterOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-2xl border border-neutral-200 shadow-xl z-50 p-4 space-y-5">
+                  <div className="absolute right-0 top-full mt-2 w-72 max-w-[calc(100vw-2rem)] bg-white rounded-2xl border border-neutral-200 shadow-xl z-50 p-4 space-y-5 sm:right-0 sm:w-72 lg:right-0">
+                    <div className="max-h-[70vh] overflow-y-auto">
 
                     {/* Sort */}
                     <div>
@@ -260,8 +279,8 @@ function SearchPage() {
                     <div>
                       <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">Price Range</p>
                       <PriceRangeFilter
-                        minPrice={DEFAULT_MIN_PRICE}
-                        maxPrice={DEFAULT_MAX_PRICE}
+                        minPrice={priceRange.min}
+                        maxPrice={priceRange.max}
                         currentMin={minPrice}
                         currentMax={maxPrice}
                         onApply={(min, max) => {
@@ -303,6 +322,7 @@ function SearchPage() {
                         Clear all filters
                       </button>
                     )}
+                    </div>
                   </div>
                 )}
               </div>

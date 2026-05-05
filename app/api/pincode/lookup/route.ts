@@ -28,6 +28,12 @@ export async function POST(req: NextRequest) {
     if (error instanceof Error && error.message === 'PINCODE_NOT_FOUND') {
       return NextResponse.json({ success: false, error: 'Pincode not found' }, { status: 404 });
     }
+    if (error instanceof Error && error.message === 'Failed to connect to India Post API') {
+      return NextResponse.json({ success: false, error: 'India Post API is temporarily unavailable' }, { status: 503 });
+    }
+    if (error instanceof Error && error.message === 'Failed to validate pincode') {
+      return NextResponse.json({ success: false, error: 'Failed to validate pincode' }, { status: 500 });
+    }
     console.error('POST /api/pincode/lookup error:', error);
     return NextResponse.json({ success: false, error: 'Failed to validate pincode' }, { status: 500 });
   }
