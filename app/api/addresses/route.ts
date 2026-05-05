@@ -2,10 +2,6 @@ import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { lookupPincodeMetadata, normalizePincodeInput } from '@/lib/services/pincode.service';
 
-function normalizeNickname(value: unknown): string {
-  const nickname = typeof value === 'string' ? value.trim() : '';
-  return nickname.length > 0 ? nickname.slice(0, 40) : 'Home';
-}
 
 export async function GET() {
   const supabase = await createClient();
@@ -45,15 +41,13 @@ export async function POST(req: Request) {
   }
 
   const {
-    full_name,
-    landmark,
     address_line1,
     address_line2,
     postal_code,
     country,
     phone,
     is_default,
-    nickname,
+    label,
   } = body;
 
   if (!address_line1 || !postal_code || !country) {
@@ -77,6 +71,12 @@ export async function POST(req: Request) {
     if (error instanceof Error && error.message === 'PINCODE_NOT_FOUND') {
       return NextResponse.json({ error: 'Pincode not found' }, { status: 404 });
     }
+    if (error instanceof Error && error.message === 'Failed to connect to India Post API') {
+      return NextResponse.json({ error: 'India Post API is temporarily unavailable' }, { status: 503 });
+    }
+    if (error instanceof Error && error.message === 'Failed to validate pincode') {
+      return NextResponse.json({ error: 'Failed to validate pincode' }, { status: 500 });
+    }
     console.error('Pincode lookup failed in address create:', error);
     return NextResponse.json({ error: 'Failed to validate pincode' }, { status: 500 });
   }
@@ -84,23 +84,16 @@ export async function POST(req: Request) {
   const { data, error } = await supabase.from('addresses').insert([
     {
       user_id: user.id,
-      full_name: typeof full_name === 'string' ? full_name.trim() || null : null,
-      landmark: typeof landmark === 'string' ? landmark.trim() || null : null,
       address_line1: String(address_line1).trim(),
-      address_line2: address_line2 ?? null,
+      address_line2: address_line2 ? String(address_line2).trim() : null,
       city: pincodeMeta.city,
       state: pincodeMeta.state,
-      district: pincodeMeta.district,
-      post_office: pincodeMeta.postOffice,
-      state_code: pincodeMeta.stateCode,
-      normalized_pincode: pincodeMeta.normalizedPincode,
-      pincode_source: pincodeMeta.source,
-      pincode_validated_at: new Date().toISOString(),
       postal_code: pincodeMeta.normalizedPincode,
       country: String(country).trim(),
-      phone: phone ?? null,
-      nickname: normalizeNickname(nickname),
+      phone: phone ? String(phone).trim() : null,
+      post_office: pincodeMeta.postOffice,
       is_default: !!is_default,
+      label: typeof label === 'string' ? label.trim() : 'Home',
     },
   ]).select().single();
 

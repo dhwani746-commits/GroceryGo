@@ -52,39 +52,26 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     if (error instanceof Error && error.message === 'PINCODE_NOT_FOUND') {
       return NextResponse.json({ error: 'Pincode not found' }, { status: 404 });
     }
+    if (error instanceof Error && error.message === 'Failed to connect to India Post API') {
+      return NextResponse.json({ error: 'India Post API is temporarily unavailable' }, { status: 503 });
+    }
+    if (error instanceof Error && error.message === 'Failed to validate pincode') {
+      return NextResponse.json({ error: 'Failed to validate pincode' }, { status: 500 });
+    }
     console.error('Pincode lookup failed in address update:', error);
     return NextResponse.json({ error: 'Failed to validate pincode' }, { status: 500 });
   }
 
   const payload = {
-    full_name:
-      body.full_name === null || body.full_name === undefined
-        ? null
-        : String(body.full_name).trim() || null,
-    landmark:
-      body.landmark === null || body.landmark === undefined
-        ? null
-        : String(body.landmark).trim() || null,
     address_line1: typeof body.address_line1 === 'string' ? body.address_line1.trim() : undefined,
-    address_line2:
-      body.address_line2 === null || body.address_line2 === undefined
-        ? null
-        : String(body.address_line2).trim() || null,
+    address_line2: body.address_line2 ? String(body.address_line2).trim() : null,
     city: pincodeMeta.city,
     state: pincodeMeta.state,
-    district: pincodeMeta.district,
-    post_office: pincodeMeta.postOffice,
-    state_code: pincodeMeta.stateCode,
-    normalized_pincode: pincodeMeta.normalizedPincode,
-    pincode_source: pincodeMeta.source,
-    pincode_validated_at: new Date().toISOString(),
     postal_code: pincodeMeta.normalizedPincode,
     country: typeof body.country === 'string' ? body.country.trim() : undefined,
-    phone:
-      body.phone === null || body.phone === undefined
-        ? null
-        : String(body.phone).trim() || null,
-    nickname: normalizeNickname(body.nickname),
+    phone: body.phone ? String(body.phone).trim() : null,
+    post_office: pincodeMeta.postOffice,
+    label: typeof body.label === 'string' ? body.label.trim() : 'Home',
     is_default: Boolean(body.is_default),
   };
 

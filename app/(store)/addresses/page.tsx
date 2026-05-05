@@ -21,7 +21,7 @@ import { toast } from 'sonner';
 
 type Address = {
   id: string;
-  nickname: string;
+  label: string;
   address_line1: string;
   address_line2?: string | null;
   city: string;
@@ -29,11 +29,12 @@ type Address = {
   postal_code: string;
   country: string;
   phone?: string | null;
+  post_office?: string | null;
   is_default?: boolean;
 };
 
 const EMPTY_FORM = {
-  nickname: 'Home',
+  label: 'Home',
   address_line1: '',
   address_line2: '',
   city: '',
@@ -41,6 +42,7 @@ const EMPTY_FORM = {
   postal_code: '',
   country: 'India',
   phone: '',
+  post_office: '',
   is_default: false,
 };
 
@@ -64,7 +66,11 @@ export default function AddressesPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [formError, setFormError] = useState('');
+  const [pincodeLookupLoading, setPincodeLookupLoading] = useState(false);
+  const [pincodeLookupError, setPincodeLookupError] = useState('');
+  const [isPincodeValidated, setIsPincodeValidated] = useState(false);
 
   const fetchAddresses = useCallback(async () => {
     setFetching(true);
@@ -102,7 +108,7 @@ export default function AddressesPage() {
   const openEditForm = (a: Address) => {
     setEditingId(a.id);
     setForm({
-      nickname: a.nickname ?? 'Home',
+      label: a.label ?? 'Home',
       address_line1: a.address_line1,
       address_line2: a.address_line2 ?? '',
       city: a.city,
@@ -110,9 +116,13 @@ export default function AddressesPage() {
       postal_code: a.postal_code,
       country: a.country,
       phone: a.phone ?? '',
+      post_office: a.post_office ?? '',
       is_default: !!a.is_default,
     });
     setFormError('');
+    setIsPincodeValidated(Boolean(a.city && a.state));
+    setPincodeLookupError('');
+    setPincodeLookupLoading(false);
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -122,15 +132,75 @@ export default function AddressesPage() {
     setEditingId(null);
     setForm(EMPTY_FORM);
     setFormError('');
+    setIsPincodeValidated(false);
+    setPincodeLookupError('');
+    setPincodeLookupLoading(false);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
+    
+    if (name === 'postal_code') {
+      const sanitized = value.replace(/\D/g, '').slice(0, 6);
+      setForm((f) => ({
+        ...f,
+        postal_code: sanitized,
+        city: '',
+        state: '',
+      }));
+      setIsPincodeValidated(false);
+      setPincodeLookupError('');
+      return;
+    }
+    
+    if (name === 'city' || name === 'state') return; // These are auto-filled from pincode
+    
     setForm((f) => ({
       ...f,
       [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
     }));
   };
+
+  const validatePincode = useCallback(async () => {
+    if (!/^\d{6}$/.test(form.postal_code)) {
+      setPincodeLookupError('Enter a valid 6-digit pincode');
+      setIsPincodeValidated(false);
+      return;
+    }
+
+    setPincodeLookupLoading(true);
+    setPincodeLookupError('');
+    try {
+      const res = await fetch('/api/pincode/lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pincode: form.postal_code }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setPincodeLookupError(json.error ?? 'Failed to validate pincode');
+        setIsPincodeValidated(false);
+        return;
+      }
+      const data = json.data as {
+        city: string;
+        state: string;
+        postOffice: string;
+      };
+      setForm((f) => ({
+        ...f,
+        city: data.city,
+        state: data.state,
+        post_office: data.postOffice,
+      }));
+      setIsPincodeValidated(true);
+    } catch {
+      setPincodeLookupError('Unable to validate pincode right now');
+      setIsPincodeValidated(false);
+    } finally {
+      setPincodeLookupLoading(false);
+    }
+  }, [form.postal_code]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -140,7 +210,11 @@ export default function AddressesPage() {
       setFormError('Address line 1, city, and postal code are required.');
       return;
     }
-    if (!form.nickname.trim()) {
+    if (!isPincodeValidated) {
+      setFormError('Please validate your pincode to auto-fill city/state before saving the address.');
+      return;
+    }
+    if (!form.label || !form.label.trim()) {
       setFormError('Address label is required.');
       return;
     }
@@ -153,7 +227,7 @@ export default function AddressesPage() {
     try {
       const payload = {
         address_line1: form.address_line1.trim(),
-        nickname: form.nickname.trim(),
+        label: form.label.trim(),
         address_line2: form.address_line2.trim() || null,
         city: form.city.trim(),
         state: form.state.trim() || null,
@@ -190,14 +264,18 @@ export default function AddressesPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Remove this address from your saved addresses?')) return;
-    setDeletingId(id);
+  const handleDeleteClick = (id: string) => {
+    setDeleteConfirmId(id);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirmId) return;
+    setDeletingId(deleteConfirmId);
     try {
-      const res = await fetch(`/api/addresses/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/addresses/${deleteConfirmId}`, { method: 'DELETE' });
       if (res.ok) {
         toast.success('Address removed');
-        setAddresses((prev) => prev.filter((a) => a.id !== id));
+        setAddresses((prev) => prev.filter((a) => a.id !== deleteConfirmId));
       } else {
         toast.error('Failed to remove address');
       }
@@ -205,7 +283,16 @@ export default function AddressesPage() {
       toast.error('Network error');
     } finally {
       setDeletingId(null);
+      setDeleteConfirmId(null);
     }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteConfirmId(null);
+  };
+
+  const handleDelete = async (id: string) => {
+    handleDeleteClick(id);
   };
 
   if (authLoading) {
@@ -241,7 +328,7 @@ export default function AddressesPage() {
               className="flex items-center gap-2 px-4 py-2.5 bg-brand-primary-600 text-white rounded-xl text-sm font-medium hover:bg-brand-primary-700 transition shadow-sm"
             >
               <Plus size={16} />
-              Add Address
+              Address
             </button>
           )}
         </div>
@@ -268,16 +355,16 @@ export default function AddressesPage() {
                   Address Label <span className="text-red-500">*</span>
                 </label>
                 <input
-                  name="nickname"
-                  value={form.nickname}
+                  name="label"
+                  value={form.label}
                   onChange={handleChange}
                   placeholder="Home, Work, Custom"
                   required
                   maxLength={40}
-                  list="address-nickname-options"
+                  list="address-label-options"
                   className="w-full border border-neutral-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-500 focus:border-transparent transition"
                 />
-                <datalist id="address-nickname-options">
+                <datalist id="address-label-options">
                   <option value="Home" />
                   <option value="Work" />
                   <option value="Family" />
@@ -320,21 +407,26 @@ export default function AddressesPage() {
                   name="city"
                   value={form.city}
                   onChange={handleChange}
-                  placeholder="Mumbai"
+                  placeholder="Auto-filled from pincode"
+                  disabled
                   required
-                  className="w-full border border-neutral-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-500 focus:border-transparent transition"
+                  className="w-full border border-neutral-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-500 focus:border-transparent bg-neutral-50 transition"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-1.5">State</label>
+                <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+                  State <span className="text-red-500">*</span>
+                </label>
                 <select
                   name="state"
                   value={form.state}
                   onChange={handleChange}
-                  className="w-full border border-neutral-300 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary-500 focus:border-transparent transition"
+                  disabled
+                  required
+                  className="w-full border border-neutral-300 rounded-lg px-3 py-2.5 text-sm bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-brand-primary-500 focus:border-transparent transition"
                 >
-                  <option value="">Select state</option>
+                  <option value="">Auto-filled from pincode</option>
                   {INDIAN_STATES.map((s) => (
                     <option key={s} value={s}>{s}</option>
                   ))}
@@ -343,18 +435,51 @@ export default function AddressesPage() {
 
               <div>
                 <label className="block text-sm font-medium text-neutral-700 mb-1.5">
-                  Postal Code <span className="text-red-500">*</span>
+                  Post Office <span className="text-neutral-400 font-normal">(auto-filled)</span>
                 </label>
                 <input
-                  name="postal_code"
-                  value={form.postal_code}
+                  name="post_office"
+                  value={form.post_office}
                   onChange={handleChange}
-                  placeholder="400001"
-                  maxLength={6}
-                  inputMode="numeric"
-                  required
-                  className="w-full border border-neutral-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-500 focus:border-transparent transition"
+                  placeholder="Auto-filled from pincode"
+                  disabled
+                  className="w-full border border-neutral-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-500 focus:border-transparent bg-neutral-50 transition"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+                  Postal Code <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    name="postal_code"
+                    value={form.postal_code}
+                    onChange={handleChange}
+                    placeholder="400001"
+                    maxLength={6}
+                    inputMode="numeric"
+                    required
+                    disabled={pincodeLookupLoading}
+                    className="flex-1 border border-neutral-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-500 focus:border-transparent transition"
+                  />
+                  <button
+                    type="button"
+                    onClick={validatePincode}
+                    disabled={pincodeLookupLoading || !/^\d{6}$/.test(form.postal_code)}
+                    className="px-4 py-2.5 bg-brand-primary-600 text-white rounded-lg text-sm font-medium hover:bg-brand-primary-700 disabled:opacity-50 transition"
+                  >
+                    {pincodeLookupLoading ? <Loader2 size={16} className="animate-spin" /> : 'Validate'}
+                  </button>
+                </div>
+                {pincodeLookupError && (
+                  <p className="mt-1 text-xs text-status-danger-600">{pincodeLookupError}</p>
+                )}
+                {isPincodeValidated && (
+                  <p className="mt-1 text-xs text-status-success-600 flex items-center gap-1">
+                    <CheckCircle2 size={12} /> Pincode validated successfully
+                  </p>
+                )}
               </div>
 
               <div>
@@ -468,7 +593,7 @@ export default function AddressesPage() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-neutral-700 bg-neutral-100 border border-neutral-200 px-2 py-0.5 rounded-full">
-                          {a.nickname || 'Home'}
+                          {a.label || 'Home'}
                         </span>
                         <p className="font-semibold text-neutral-900 text-sm">
                           {a.address_line1}
@@ -483,6 +608,11 @@ export default function AddressesPage() {
                       <p className="text-sm text-neutral-500 mt-0.5">
                         {a.city}{a.state ? `, ${a.state}` : ''} — {a.postal_code}
                       </p>
+                      {a.post_office && (
+                        <p className="text-sm text-neutral-500 mt-0.5">
+                          Post Office: {a.post_office}
+                        </p>
+                      )}
                       <p className="text-sm text-neutral-400">{a.country}</p>
                       {a.phone && (
                         <p className="text-sm text-neutral-500 mt-1 flex items-center gap-1">
@@ -519,6 +649,46 @@ export default function AddressesPage() {
           </div>
         )}
       </main>
+
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirmId && (
+        <div className="fixed inset-0 bg-white/80 border border-slate-200 rounded-xl p-4 shadow-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-status-danger-50 rounded-full flex items-center justify-center">
+                <Trash2 size={20} className="text-status-danger-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-neutral-900">Remove Address</h3>
+            </div>
+            <p className="text-sm text-neutral-600 mb-6">
+              Are you sure you want to remove this address from your saved addresses? This action cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={handleDeleteCancel}
+                disabled={deletingId !== null}
+                className="px-4 py-2.5 text-sm font-medium text-neutral-700 bg-neutral-100 hover:bg-neutral-200 rounded-lg transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={deletingId !== null}
+                className="px-4 py-2.5 text-sm font-medium text-white bg-status-danger-500 hover:bg-status-danger-700 rounded-lg transition disabled:opacity-50 flex items-center gap-2"
+              >
+                {deletingId ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Removing...
+                  </>
+                ) : (
+                  'Remove Address'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

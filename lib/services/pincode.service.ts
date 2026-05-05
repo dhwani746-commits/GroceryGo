@@ -1,5 +1,4 @@
-import { getIndiaPincode, isValidPincode } from 'india-pincode';
-
+// India Post API integration
 export interface NormalizedPincodeMetadata {
   normalizedPincode: string;
   city: string;
@@ -7,34 +6,34 @@ export interface NormalizedPincodeMetadata {
   district: string;
   postOffice: string;
   stateCode: string | null;
-  source: 'india-pincode';
+  source: 'india-post-api';
 }
 
-type PincodeClient = ReturnType<typeof getIndiaPincode>;
-let pincodeClientPromise: Promise<PincodeClient> | null = null;
-
-async function getPincodeClient(): Promise<PincodeClient> {
-  if (pincodeClientPromise) return pincodeClientPromise;
-
-  pincodeClientPromise = (async () => {
-    try {
-      return getIndiaPincode();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      if (!message.includes('data file not found')) {
-        throw error;
-      }
-      // Fallback: try direct import without browser-specific path
-      // The package should handle browser/Node.js differences internally
-      return getIndiaPincode();
-    }
-  })();
-
-  return pincodeClientPromise;
+export interface IndiaPostResponse {
+  Message: string;
+  Status: string;
+  PostOffice: Array<{
+    Name: string;
+    Description: string;
+    BranchType: string;
+    DeliveryStatus: string;
+    Circle: string;
+    District: string;
+    Division: string;
+    Region: string;
+    Block: string;
+    State: string;
+    Country: string;
+    Pincode: string;
+  }> | null;
 }
 
 export function normalizePincodeInput(raw: string): string {
   return raw.replace(/\D/g, '').slice(0, 6);
+}
+
+function isValidPincode(pincode: string): boolean {
+  return /^\d{6}$/.test(pincode);
 }
 
 function deriveStateCode(state: string): string | null {
@@ -57,21 +56,52 @@ export async function lookupPincodeMetadata(rawPincode: string): Promise<Normali
     throw new Error('INVALID_PINCODE');
   }
 
-  const pincodeClient = await getPincodeClient();
-  const result = pincodeClient.getByPincode(normalized, { limit: 10, page: 1, deliveryOnly: true });
-  if (!result.success || !result.data || result.data.data.length === 0) {
-    throw new Error('PINCODE_NOT_FOUND');
-  }
+  try {
+    // Call India Post API
+    const response = await fetch(`https://api.postalpincode.in/pincode/${normalized}`);
+    
+    if (!response.ok) {
+      throw new Error('PINCODE_API_ERROR');
+    }
 
-  const primary = result.data.data[0];
-  return {
-    normalizedPincode: normalized,
-    city: primary.district,
-    state: primary.state,
-    district: primary.district,
-    postOffice: primary.area,
-    stateCode: deriveStateCode(primary.state),
-    source: 'india-pincode',
-  };
+    const dataArray = await response.json();
+    
+    // Extract the first element from the array (actual response)
+    const data = dataArray[0];
+    
+    // Handle error response
+    if (data.Status === 'Error' || !data.PostOffice || data.PostOffice.length === 0) {
+      throw new Error('PINCODE_NOT_FOUND');
+    }
+
+    // Get the first post office result
+    const postOffice = data.PostOffice[0];
+    
+    return {
+      normalizedPincode: normalized,
+      city: postOffice.District || postOffice.Name,
+      state: postOffice.State,
+      district: postOffice.District || postOffice.Name,
+      postOffice: postOffice.Name,
+      stateCode: deriveStateCode(postOffice.State),
+      source: 'india-post-api',
+    };
+  } catch (error) {
+    if (error instanceof Error && error.message === 'INVALID_PINCODE') {
+      throw error;
+    }
+    
+    // Handle API errors
+    if (error instanceof Error && error.message === 'PINCODE_API_ERROR') {
+      throw new Error('Unable to validate pincode at the moment. Please try again later.');
+    }
+    
+    if (error instanceof Error && error.message === 'PINCODE_NOT_FOUND') {
+      throw error;
+    }
+    
+    // Generic error handling
+    throw new Error('Failed to validate pincode');
+  }
 }
 
