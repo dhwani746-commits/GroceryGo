@@ -16,7 +16,7 @@ export interface ProductFilters {
   maxPrice?: number;
 }
 
-const SELECT_COLS = 'id, name, slug, price, description, image_urls, stock_quantity, category';
+const SELECT_COLS = 'id, name, slug, price, original_price, discount_percentage, description, image_urls, stock_quantity, category';
 
 export class ProductRepository {
   static async getProductBySlug(slug: string): Promise<Product | null> {

@@ -4,11 +4,12 @@ export const dynamic = "force-dynamic";
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/shared/Header';
+import { Breadcrumb } from '@/components/shared/Breadcrumb';
 import { CartItem } from '@/components/store/CartItem';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, ShoppingBag, Trash2 } from 'lucide-react';
+import { ShoppingBag, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useCart } from '@/lib/hooks/useCart';
 import { formatCurrency } from '@/lib/utils/formatCurrency';
@@ -53,17 +54,14 @@ export default function CartPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
+      <Header hideSearch />
       
       <div className="container mx-auto px-4 py-8 max-w-6xl">
-        {/* Back Button */}
-        <Link 
-          href="/"
-          className="inline-flex items-center text-gray-600 hover:text-gray-900 mb-6"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Continue Shopping
-        </Link>
+        {/* Breadcrumb */}
+        <Breadcrumb
+          items={[{ label: 'Shopping Cart' }]}
+          className="mb-6"
+        />
 
         {/* Page Title */}
         <div className="flex items-center justify-between mb-8">

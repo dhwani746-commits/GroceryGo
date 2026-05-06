@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Package, Settings, ShoppingCart, Tag, X, User, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, Settings, ShoppingCart, Tag, Users, X, User, LogOut } from 'lucide-react';
 
 interface AdminSidebarProps {
   isOpen: boolean;
@@ -15,6 +15,7 @@ const NAV_LINKS = [
   { href: '/admin/dashboard', label: 'Dashboard',   icon: LayoutDashboard },
   { href: '/admin/products',  label: 'Products',    icon: Package },
   { href: '/admin/orders',    label: 'Orders',      icon: ShoppingCart },
+  { href: '/admin/users',     label: 'Users',       icon: Users },
   { href: '/admin/promos',    label: 'Promo Codes', icon: Tag },
   { href: '/admin/settings',   label: 'Settings',    icon: Settings },
 ];

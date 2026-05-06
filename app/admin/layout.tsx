@@ -55,9 +55,9 @@ export default function AdminLayout({
       />
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col">
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Bar with Hamburger */}
-        <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center md:hidden">
+        <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center md:hidden">
           <button
             onClick={() => setSidebarOpen(true)}
             className="p-2 hover:bg-gray-100 rounded-lg transition text-gray-700"
@@ -66,7 +66,7 @@ export default function AdminLayout({
             <Menu size={24} />
           </button>
         </div>
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden">
           {children}
         </div>
       </main>

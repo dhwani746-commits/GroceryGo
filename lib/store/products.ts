@@ -5,6 +5,8 @@ export interface Product {
   name: string;
   slug: string;
   price: string;
+  original_price?: number | null;
+  discount_percentage?: number | null;
   description: string | null;
   image_urls: string[] | null;
   stock_quantity: number;

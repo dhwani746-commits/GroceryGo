@@ -61,10 +61,20 @@ export function Header({ hideSearch = false }: HeaderProps) {
     }
   }, [isUserMenuOpen]);
 
+  // Show skeleton only on first load, not on subsequent cached loads
   if (loading) {
     return (
-      <header className="bg-neutral-0 border-b border-neutral-200 fixed w-full z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4 text-neutral-700">Loading...</div>
+      <header className="bg-white border-b border-neutral-200 fixed w-full z-50">
+        <div className="max-w-[90rem] mx-auto py-3 md:py-5 px-4 md:px-6 flex justify-between items-center">
+          <div className="w-32 h-8 bg-neutral-200 rounded animate-pulse"></div>
+          <div className="flex gap-3 items-center ml-auto">
+            <div className="w-10 h-10 bg-neutral-200 rounded-md animate-pulse"></div>
+            <div className="w-20 h-10 bg-neutral-200 rounded-md animate-pulse hidden lg:block"></div>
+          </div>
+        </div>
+        <div className="max-w-[90rem] mx-auto px-4 md:px-6 pb-3 md:pb-4">
+          <div className="w-full h-12 bg-neutral-200 rounded-md animate-pulse"></div>
+        </div>
       </header>
     );
   }

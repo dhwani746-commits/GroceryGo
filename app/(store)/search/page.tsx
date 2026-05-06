@@ -6,13 +6,13 @@ import { Suspense } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ProductCard } from '@/components/store/ProductCard';
 import { Header } from '@/components/shared/Header';
+import { Breadcrumb } from '@/components/shared/Breadcrumb';
 import { PriceRangeFilter } from '@/components/store/PriceRangeFilter';
 import {
   Search as SearchIcon,
   ChevronLeft,
   ChevronRight,
   SlidersHorizontal,
-  ArrowLeft,
   ChevronDown,
   X,
   PackageX,
@@ -197,15 +197,15 @@ function SearchPage() {
       <div className="min-h-screen bg-neutral-50 pt-32">
         <div className="max-w-7xl mx-auto px-4 py-8">
 
+          {/* Breadcrumb */}
+          <Breadcrumb
+            items={[{ label: query ? `Search: "${query}"` : 'All Products' }]}
+            className="mb-4"
+          />
+
           {/* Page header */}
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6 sm:gap-6">
             <div>
-              <Link
-                href="/"
-                className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-900 transition mb-3"
-              >
-                <ArrowLeft size={14} /> Back to Home
-              </Link>
               <h1 className="text-2xl font-bold text-neutral-900">
                 {query ? `Results for "${query}"` : 'All Products'}
               </h1>

@@ -172,4 +172,12 @@ export class OrderService {
   static async getDashboardStats() {
     return OrderRepository.getDashboardStats();
   }
+
+  static async getTopProducts(limit: number) {
+    return OrderRepository.getTopProducts(limit);
+  }
+
+  static async getRecentPendingOrders(limit: number) {
+    return OrderRepository.getRecentPendingOrders(limit);
+  }
 }

@@ -4,7 +4,8 @@ import { OrderService } from '@/lib/services/order.service';
 import { formatCurrency } from '@/lib/utils';
 import Link from 'next/link';
 import { Header } from '@/components/shared/Header';
-import { ShoppingBag, Package, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
+import { Breadcrumb } from '@/components/shared/Breadcrumb';
+import { ShoppingBag, Package, ChevronDown, ChevronUp } from 'lucide-react';
 import OrdersClient from '@/components/store/OrdersClient';
 
 export const metadata = {
@@ -28,6 +29,12 @@ export default async function OrdersPage() {
     <div className="min-h-screen bg-neutral-50">
       <Header hideSearch />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-20">
+        {/* Breadcrumb */}
+        <Breadcrumb
+          items={[{ label: 'Your Orders' }]}
+          className="mb-6"
+        />
+
         <div className="flex items-center gap-2 mb-8">
           <ShoppingBag size={22} className="text-brand-primary-600" />
           <h1 className="text-2xl font-bold text-neutral-900">Your Orders</h1>
