@@ -4,22 +4,175 @@ import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { toast } from 'sonner';
-import { Pencil, Trash2, Eye, EyeOff, Search, ArrowLeft, ArrowRight, ImagePlus, Boxes, CircleSlash, AlertCircle, Filter, X } from 'lucide-react';
-
-interface Category {
-  name: string;
-}
+import { Pencil, Trash2, Eye, EyeOff, Search, ArrowLeft, ArrowRight, ImagePlus, Boxes, CircleSlash, AlertCircle, Filter, X, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface Product {
   id: string;
   name: string;
   slug: string;
-  price: string;
+  price: number | string;
+  original_price?: number | null;
+  discount_percentage?: number | null;
   stock_quantity: number;
   is_visible: boolean;
   image_urls?: string[];
-  category?: Category;
+  category?: string | { name: string } | null;
   created_at: string;
+}
+
+// Mobile Product Card Component
+interface MobileProductCardsProps {
+  products: Product[];
+  onDelete: (product: Product) => void;
+  onToggleVisibility: (id: string, currentVisibility: boolean) => void;
+}
+
+function MobileProductCards({ products, onDelete, onToggleVisibility }: MobileProductCardsProps) {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const toggleExpand = (id: string) => {
+    setExpandedId(expandedId === id ? null : id);
+  };
+
+  return (
+    <>
+      {products.map((product) => {
+        const outOfStock = product.stock_quantity === 0;
+        const lowStock = product.stock_quantity > 0 && product.stock_quantity <= 10;
+        const isExpanded = expandedId === product.id;
+        const catName = typeof product.category === 'string' ? product.category : product.category?.name || 'Uncategorized';
+
+        return (
+          <div key={product.id} className="bg-white">
+            {/* Card Header - Always Visible */}
+            <button
+              onClick={() => toggleExpand(product.id)}
+              className="w-full p-4 flex items-center gap-3 text-left"
+            >
+              {/* Product Image */}
+              <div className="h-14 w-14 flex-shrink-0 bg-neutral-100 rounded-lg border border-neutral-200 flex items-center justify-center overflow-hidden">
+                {product.image_urls && product.image_urls.length > 0 ? (
+                  <Image
+                    src={product.image_urls[0]}
+                    alt={product.name}
+                    width={56}
+                    height={56}
+                    className="object-cover w-full h-full"
+                  />
+                ) : (
+                  <ImagePlus size={24} strokeWidth={1.5} className="text-neutral-400" />
+                )}
+              </div>
+
+              {/* Product Info */}
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-semibold text-neutral-900 truncate">{product.name}</h3>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-brand-primary-600 font-bold">₹{Number(product.price).toFixed(0)}</span>
+                  {!product.is_visible ? (
+                    <span className="text-xs px-1.5 py-0.5 bg-neutral-100 text-neutral-500 rounded">Inactive</span>
+                  ) : outOfStock ? (
+                    <span className="text-xs px-1.5 py-0.5 bg-neutral-100 text-neutral-500 rounded">Out</span>
+                  ) : lowStock ? (
+                    <span className="text-xs px-1.5 py-0.5 bg-status-warning-50 text-status-warning-700 rounded">Low</span>
+                  ) : (
+                    <span className="text-xs px-1.5 py-0.5 bg-status-success-50 text-status-success-700 rounded">Active</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Expand Icon */}
+              <div className="flex-shrink-0">
+                {isExpanded ? (
+                  <ChevronUp size={20} className="text-neutral-400" />
+                ) : (
+                  <ChevronDown size={20} className="text-neutral-400" />
+                )}
+              </div>
+            </button>
+
+            {/* Expanded Details */}
+            {isExpanded && (
+              <div className="px-4 pb-4 pt-0">
+                <div className="bg-neutral-50 rounded-lg p-3 space-y-3">
+                  {/* Category */}
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-neutral-500 uppercase">Category</span>
+                    <span className="text-sm text-neutral-700">{catName}</span>
+                  </div>
+
+                  {/* Price Details */}
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-neutral-500 uppercase">Price</span>
+                    <div className="text-right">
+                      <span className="text-sm font-semibold text-neutral-900">₹{Number(product.price).toFixed(2)}</span>
+                      {product.original_price && product.original_price > Number(product.price) && (
+                        <p className="text-xs text-green-600">
+                          {Math.round(((product.original_price - Number(product.price)) / product.original_price) * 100)}% off
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Stock */}
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-neutral-500 uppercase">Stock</span>
+                    <span className={`text-sm font-medium ${
+                      outOfStock ? 'text-red-600' : lowStock ? 'text-status-warning-700' : 'text-green-600'
+                    }`}>
+                      {product.stock_quantity} units
+                    </span>
+                  </div>
+
+                  {/* Status */}
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-neutral-500 uppercase">Status</span>
+                    <span className={`text-xs px-2 py-1 rounded font-medium ${
+                      !product.is_visible ? 'bg-neutral-100 text-neutral-500' :
+                      outOfStock ? 'bg-neutral-100 text-neutral-500' :
+                      lowStock ? 'bg-status-warning-50 text-status-warning-700' :
+                      'bg-status-success-50 text-status-success-700'
+                    }`}>
+                      {!product.is_visible ? 'Inactive' : outOfStock ? 'Out of Stock' : lowStock ? 'Low Stock' : 'Active'}
+                    </span>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="pt-2 border-t border-neutral-200">
+                    <div className="flex items-center justify-end gap-2">
+                      <Link
+                        href={`/admin/products/${product.id}/edit`}
+                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-brand-primary-50 text-brand-primary-600 rounded-lg text-sm font-medium"
+                      >
+                        <Pencil size={16} />
+                        Edit
+                      </Link>
+                      <button
+                        onClick={() => onToggleVisibility(product.id, product.is_visible)}
+                        className={`flex items-center justify-center p-2 rounded-lg ${
+                          product.is_visible
+                            ? 'bg-status-warning-50 text-status-warning-700'
+                            : 'bg-status-success-50 text-status-success-700'
+                        }`}
+                      >
+                        {product.is_visible ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                      <button
+                        onClick={() => onDelete(product)}
+                        className="flex items-center justify-center p-2 bg-status-danger-50 text-status-danger-700 rounded-lg"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </>
+  );
 }
 
 export function ProductsList() {
@@ -113,7 +266,12 @@ export function ProductsList() {
 
   // Extract unique categories for the dropdown
   const categories = useMemo(() => {
-    const cats = new Set(products.map(p => p.category?.name).filter(Boolean));
+    const cats = new Set(
+      products.map(p => {
+        if (typeof p.category === 'string') return p.category;
+        return p.category?.name;
+      }).filter(Boolean)
+    );
     return Array.from(cats) as string[];
   }, [products]);
 
@@ -128,7 +286,8 @@ export function ProductsList() {
       if (stockFilter === 'low_stock' && (product.stock_quantity === 0 || product.stock_quantity > 10)) return false;
 
       // 3. Category Filter
-      if (selectedCategory !== 'all' && product.category?.name !== selectedCategory) return false;
+      const catName = typeof product.category === 'string' ? product.category : product.category?.name;
+      if (selectedCategory !== 'all' && catName !== selectedCategory) return false;
 
       // 4. Status Filter
       if (statusFilter === 'active' && !product.is_visible) return false;
@@ -340,7 +499,8 @@ export function ProductsList() {
         </div>
       ) : (
         <div className="bg-white border border-neutral-200 rounded-lg overflow-hidden">
-          <div className="overflow-x-auto">
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead className="bg-neutral-50 border-b border-neutral-200">
                 <tr>
@@ -380,10 +540,17 @@ export function ProductsList() {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-base text-neutral-700">
-                        {product.category?.name || 'Uncategorized'}
+                        {typeof product.category === 'string' ? product.category : product.category?.name || 'Uncategorized'}
                       </td>
                       <td className="px-6 py-4 text-price text-neutral-900">
-                        ₹ {(Number(product.price)).toFixed(2)}
+                        <div className="flex flex-col">
+                          <span>₹ {(Number(product.price)).toFixed(2)}</span>
+                          {product.original_price && product.original_price > Number(product.price) && (
+                            <span className="text-xs text-green-600 font-medium">
+                              {Math.round(((product.original_price - Number(product.price)) / product.original_price) * 100)}% off
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4 text-base text-neutral-700">
                         {product.stock_quantity}
@@ -442,6 +609,15 @@ export function ProductsList() {
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden divide-y divide-neutral-200">
+            <MobileProductCards 
+              products={paginatedProducts} 
+              onDelete={setProductToDelete}
+              onToggleVisibility={toggleVisibility}
+            />
           </div>
 
           {totalPages > 1 && (

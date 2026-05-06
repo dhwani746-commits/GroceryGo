@@ -12,6 +12,10 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
+  ChevronDown,
+  ChevronUp,
+  Calendar,
+  Users,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -312,101 +316,241 @@ export default function AdminPromosPage() {
             <p>No promo codes yet</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Code</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Discount</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-600 hidden sm:table-cell">Usage</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-600 hidden md:table-cell">Expires</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Status</th>
-                  <th className="text-right px-4 py-3 font-semibold text-gray-600">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {promos.map((promo) => {
-                  const isExpired = promo.expires_at && new Date(promo.expires_at) < new Date();
-                  const isExhausted = promo.usage_limit !== null && promo.times_used >= promo.usage_limit;
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Code</th>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Discount</th>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Usage</th>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Expires</th>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Status</th>
+                    <th className="text-right px-4 py-3 font-semibold text-gray-600">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {promos.map((promo) => {
+                    const isExpired = promo.expires_at && new Date(promo.expires_at) < new Date();
+                    const isExhausted = promo.usage_limit !== null && promo.times_used >= promo.usage_limit;
 
-                  return (
-                    <tr key={promo.id} className="hover:bg-gray-50 transition">
-                      <td className="px-4 py-3">
-                        <span className="font-mono font-bold text-gray-900 bg-gray-100 px-2 py-0.5 rounded">
-                          {promo.code}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-gray-700">
-                        {promo.discount_type === 'percentage'
-                          ? `${promo.discount_value}%`
-                          : formatCurrency(promo.discount_value)}{' '}
-                        <span className="text-xs text-gray-400">
-                          ({promo.discount_type === 'percentage' ? 'off' : 'flat'})
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-gray-600 hidden sm:table-cell">
-                        {promo.times_used}
-                        {promo.usage_limit !== null && ` / ${promo.usage_limit}`}
-                      </td>
-                      <td className="px-4 py-3 text-gray-500 hidden md:table-cell">
-                        {promo.expires_at
-                          ? new Date(promo.expires_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-                          : <span className="text-gray-400">Never</span>}
-                      </td>
-                      <td className="px-4 py-3">
-                        {isExpired ? (
-                          <span className="inline-flex items-center gap-1 text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-                            <XCircle size={11} /> Expired
+                    return (
+                      <tr key={promo.id} className="hover:bg-gray-50 transition">
+                        <td className="px-4 py-3">
+                          <span className="font-mono font-bold text-gray-900 bg-gray-100 px-2 py-0.5 rounded">
+                            {promo.code}
                           </span>
-                        ) : isExhausted ? (
-                          <span className="inline-flex items-center gap-1 text-xs text-status-warning-700 bg-status-warning-100 px-2 py-0.5 rounded-full">
-                            <AlertCircle size={11} /> Exhausted
+                        </td>
+                        <td className="px-4 py-3 text-gray-700">
+                          {promo.discount_type === 'percentage'
+                            ? `${promo.discount_value}%`
+                            : formatCurrency(promo.discount_value)}{' '}
+                          <span className="text-xs text-gray-400">
+                            ({promo.discount_type === 'percentage' ? 'off' : 'flat'})
                           </span>
-                        ) : promo.is_active ? (
-                          <span className="inline-flex items-center gap-1 text-xs text-status-success-700 bg-status-success-100 px-2 py-0.5 rounded-full">
-                            <CheckCircle2 size={11} /> Active
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-                            <XCircle size={11} /> Inactive
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => toggleActive(promo)}
-                            disabled={togglingId === promo.id}
-                            className="px-3 py-1 text-xs border border-gray-200 rounded-lg hover:bg-gray-100 disabled:opacity-50 transition"
-                          >
-                            {togglingId === promo.id ? (
-                              <Loader2 size={12} className="animate-spin" />
-                            ) : promo.is_active ? 'Deactivate' : 'Activate'}
-                          </button>
-                          <button
-                            onClick={() => startEditingPromo(promo)}
-                            className="p-1.5 text-gray-400 hover:text-brand-primary-600 hover:bg-brand-primary-50 rounded-lg transition"
-                            title="Edit promo"
-                          >
-                            <Pencil size={14} />
-                          </button>
-                          <button
-                            onClick={() => deletePromo(promo.id)}
-                            className="p-1.5 text-gray-400 hover:text-status-danger-600 hover:bg-status-danger-50 rounded-lg transition"
-                            title="Soft delete (deactivate)"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        </td>
+                        <td className="px-4 py-3 text-gray-600">
+                          {promo.times_used}
+                          {promo.usage_limit !== null && ` / ${promo.usage_limit}`}
+                        </td>
+                        <td className="px-4 py-3 text-gray-500">
+                          {promo.expires_at
+                            ? new Date(promo.expires_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                            : <span className="text-gray-400">Never</span>}
+                        </td>
+                        <td className="px-4 py-3">
+                          {isExpired ? (
+                            <span className="inline-flex items-center gap-1 text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                              <XCircle size={11} /> Expired
+                            </span>
+                          ) : isExhausted ? (
+                            <span className="inline-flex items-center gap-1 text-xs text-status-warning-700 bg-status-warning-100 px-2 py-0.5 rounded-full">
+                              <AlertCircle size={11} /> Exhausted
+                            </span>
+                          ) : promo.is_active ? (
+                            <span className="inline-flex items-center gap-1 text-xs text-status-success-700 bg-status-success-100 px-2 py-0.5 rounded-full">
+                              <CheckCircle2 size={11} /> Active
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                              <XCircle size={11} /> Inactive
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => toggleActive(promo)}
+                              disabled={togglingId === promo.id}
+                              className="px-3 py-1 text-xs border border-gray-200 rounded-lg hover:bg-gray-100 disabled:opacity-50 transition"
+                            >
+                              {togglingId === promo.id ? (
+                                <Loader2 size={12} className="animate-spin" />
+                              ) : promo.is_active ? 'Deactivate' : 'Activate'}
+                            </button>
+                            <button
+                              onClick={() => startEditingPromo(promo)}
+                              className="p-1.5 text-gray-400 hover:text-brand-primary-600 hover:bg-brand-primary-50 rounded-lg transition"
+                              title="Edit promo"
+                            >
+                              <Pencil size={14} />
+                            </button>
+                            <button
+                              onClick={() => deletePromo(promo.id)}
+                              className="p-1.5 text-gray-400 hover:text-status-danger-600 hover:bg-status-danger-50 rounded-lg transition"
+                              title="Soft delete (deactivate)"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden divide-y divide-gray-100">
+              {promos.map((promo) => {
+                const isExpired = promo.expires_at && new Date(promo.expires_at) < new Date();
+                const isExhausted = promo.usage_limit !== null && promo.times_used >= promo.usage_limit;
+                
+                return (
+                  <MobilePromoCard
+                    key={promo.id}
+                    promo={promo}
+                    isExpired={!!isExpired}
+                    isExhausted={!!isExhausted}
+                    isToggling={togglingId === promo.id}
+                    onToggle={() => toggleActive(promo)}
+                    onEdit={() => startEditingPromo(promo)}
+                    onDelete={() => deletePromo(promo.id)}
+                  />
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
+    </div>
+  );
+}
+
+// Mobile Promo Card Component
+interface MobilePromoCardProps {
+  promo: PromoCode;
+  isExpired: boolean;
+  isExhausted: boolean;
+  isToggling: boolean;
+  onToggle: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}
+
+function MobilePromoCard({ promo, isExpired, isExhausted, isToggling, onToggle, onEdit, onDelete }: MobilePromoCardProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  return (
+    <div className="bg-white">
+      {/* Card Header */}
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full p-4 flex items-center justify-between text-left"
+      >
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-lg bg-brand-primary-100 flex items-center justify-center flex-shrink-0">
+            <Tag size={20} className="text-brand-primary-600" />
+          </div>
+          <div>
+            <span className="font-mono font-bold text-gray-900 bg-gray-100 px-2 py-0.5 rounded text-sm">
+              {promo.code}
+            </span>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-brand-primary-600 font-semibold">
+                {promo.discount_type === 'percentage' ? `${promo.discount_value}%` : formatCurrency(promo.discount_value)}
+              </span>
+              <span className="text-xs text-gray-400">off</span>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {isExpired ? (
+            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Expired</span>
+          ) : isExhausted ? (
+            <span className="text-xs text-status-warning-700 bg-status-warning-100 px-2 py-0.5 rounded-full">Exhausted</span>
+          ) : promo.is_active ? (
+            <span className="text-xs text-status-success-700 bg-status-success-100 px-2 py-0.5 rounded-full">Active</span>
+          ) : (
+            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Inactive</span>
+          )}
+          {isExpanded ? <ChevronUp size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
+        </div>
+      </button>
+
+      {/* Expanded Details */}
+      {isExpanded && (
+        <div className="px-4 pb-4">
+          <div className="bg-gray-50 rounded-lg p-3 space-y-3">
+            {/* Usage */}
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-500 uppercase flex items-center gap-1">
+                <Users size={12} /> Usage
+              </span>
+              <span className="text-sm text-gray-700">
+                {promo.times_used} used
+                {promo.usage_limit !== null && ` / ${promo.usage_limit} limit`}
+              </span>
+            </div>
+
+            {/* Expires */}
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-500 uppercase flex items-center gap-1">
+                <Calendar size={12} /> Expires
+              </span>
+              <span className="text-sm text-gray-700">
+                {promo.expires_at
+                  ? new Date(promo.expires_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+                  : 'Never'}
+              </span>
+            </div>
+
+            {/* Actions */}
+            <div className="pt-2 border-t border-gray-200">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={onToggle}
+                  disabled={isToggling}
+                  className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-100 disabled:opacity-50 transition"
+                >
+                  {isToggling ? (
+                    <Loader2 size={14} className="animate-spin mx-auto" />
+                  ) : promo.is_active ? (
+                    'Deactivate'
+                  ) : (
+                    'Activate'
+                  )}
+                </button>
+                <button
+                  onClick={onEdit}
+                  className="flex items-center justify-center gap-1 px-3 py-2 bg-brand-primary-50 text-brand-primary-600 rounded-lg text-sm font-medium"
+                >
+                  <Pencil size={14} />
+                  Edit
+                </button>
+                <button
+                  onClick={onDelete}
+                  className="p-2 bg-status-danger-50 text-status-danger-700 rounded-lg"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

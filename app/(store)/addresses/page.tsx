@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { Header } from '@/components/shared/Header';
+import { Breadcrumb } from '@/components/shared/Breadcrumb';
 import {
   MapPin,
   Plus,
@@ -308,6 +309,12 @@ export default function AddressesPage() {
       <Header hideSearch />
 
       <main className="max-w-3xl mx-auto px-4 py-8 mt-20">
+        {/* Breadcrumb */}
+        <Breadcrumb
+          items={[{ label: 'Saved Addresses' }]}
+          className="mb-6"
+        />
+
         {/* Page Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-2">

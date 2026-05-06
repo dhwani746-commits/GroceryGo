@@ -28,17 +28,20 @@ async function fetchAuth(): Promise<AuthResponse> {
 }
 
 export function useAuth() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isFetched } = useQuery({
     queryKey: ['auth'],
     queryFn: fetchAuth,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 60 * 1000, // 30 minutes cache
+    gcTime: 60 * 60 * 1000, // 1 hour garbage collection
     retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   return {
     user: data?.user ?? null,
     profile: data?.profile ?? null,
-    loading: isLoading,
+    loading: isLoading && !isFetched, // Only show loading on first fetch
     isAdmin: data?.profile?.role === 'ADMIN',
   };
 }

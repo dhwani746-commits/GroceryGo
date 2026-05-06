@@ -25,8 +25,20 @@ export async function GET() {
   }
 
   try {
-    const stats = await OrderService.getDashboardStats();
-    return NextResponse.json({ success: true, data: stats });
+    const [stats, topProducts, recentPendingOrders] = await Promise.all([
+      OrderService.getDashboardStats(),
+      OrderService.getTopProducts(5),
+      OrderService.getRecentPendingOrders(3),
+    ]);
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...stats,
+        topProducts,
+        recentPendingOrders,
+      },
+    });
   } catch (error) {
     console.error('GET /api/admin/dashboard error:', error);
     return NextResponse.json({ success: false, error: 'Failed to fetch stats' }, { status: 500 });

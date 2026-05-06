@@ -1,4 +1,5 @@
 import { createClient as createServerClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export interface OrderItem {
   id: string;
@@ -36,6 +37,7 @@ export interface Order {
   created_at: string;
   updated_at: string;
   order_items: OrderItem[];
+  profiles?: { full_name: string | null; phone: string | null } | null;
 }
 
 export interface CreateOrderInput {
@@ -221,6 +223,44 @@ export class OrderRepository {
     return { data: (data ?? []) as unknown as Order[], total: count ?? 0 };
   }
 
+  static async getOrderByIdForAdmin(orderId: string): Promise<Order | null> {
+    const supabase = await createServerClient();
+    const { data, error } = await supabase
+      .from('orders')
+      .select(`
+        id,
+        customer_id,
+        status,
+        subtotal,
+        discount_amount,
+        total_amount,
+        promo_code_id,
+        delivery_address,
+        razorpay_order_id,
+        razorpay_payment_id,
+        created_at,
+        updated_at,
+        order_items (
+          id,
+          product_id,
+          product_name,
+          quantity,
+          unit_price,
+          line_total,
+          products ( image_urls )
+        ),
+        profiles ( full_name, phone )
+      `)
+      .eq('id', orderId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') return null; // Row not found
+      throw error;
+    }
+    return data as unknown as Order;
+  }
+
   static async updateOrderStatus(orderId: string, status: string): Promise<void> {
     const supabase = await createServerClient();
     const { error } = await supabase
@@ -234,10 +274,23 @@ export class OrderRepository {
   static async getDashboardStats() {
     const supabase = await createServerClient();
 
-    const [ordersResult, revenueResult, customersResult, pendingResult] = await Promise.all([
+    // Use admin client to get actual user count from auth.users
+    let customerCount = 0;
+    try {
+      const adminClient = createAdminClient();
+      const { data: authUsers, error: authError } = await adminClient.auth.admin.listUsers();
+      if (authError) {
+        console.error('Error fetching auth users:', authError);
+      } else {
+        customerCount = authUsers.users.length;
+      }
+    } catch (err) {
+      console.error('Failed to get auth users count:', err);
+    }
+
+    const [ordersResult, revenueResult, pendingResult] = await Promise.all([
       supabase.from('orders').select('id', { count: 'exact', head: true }),
       supabase.from('orders').select('total_amount').not('status', 'eq', 'cancelled'),
-      supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'customer'),
       supabase.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
     ]);
 
@@ -249,8 +302,74 @@ export class OrderRepository {
     return {
       totalOrders: ordersResult.count ?? 0,
       totalRevenue,
-      totalCustomers: customersResult.count ?? 0,
+      totalCustomers: customerCount,
       pendingOrders: pendingResult.count ?? 0,
     };
+  }
+
+  static async getTopProducts(limit: number) {
+    const supabase = await createServerClient();
+
+    // Get all order items with product info
+    const { data: orderItems, error } = await supabase
+      .from('order_items')
+      .select('product_name, quantity, line_total')
+      .not('product_name', 'is', null);
+
+    if (error) {
+      console.error('Error fetching top products:', error);
+      return [];
+    }
+
+    // Aggregate by product name
+    const productMap = new Map<string, { quantity: number; revenue: number }>();
+    
+    (orderItems ?? []).forEach((item) => {
+      const name = item.product_name || 'Unknown Product';
+      const existing = productMap.get(name) || { quantity: 0, revenue: 0 };
+      existing.quantity += item.quantity || 0;
+      existing.revenue += item.line_total || 0;
+      productMap.set(name, existing);
+    });
+
+    // Convert to array and sort
+    const sorted = Array.from(productMap.entries())
+      .map(([product_name, stats]) => ({
+        product_name,
+        total_quantity: stats.quantity,
+        total_revenue: stats.revenue,
+      }))
+      .sort((a, b) => b.total_quantity - a.total_quantity)
+      .slice(0, limit);
+
+    return sorted;
+  }
+
+  static async getRecentPendingOrders(limit: number) {
+    const supabase = await createServerClient();
+
+    const { data: orders, error } = await supabase
+      .from('orders')
+      .select(`
+        id,
+        total_amount,
+        created_at,
+        profiles ( full_name )
+      `)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('Error fetching recent pending orders:', error);
+      return [];
+    }
+
+    return (orders ?? []).map((order: { id: string; total_amount: number; created_at: string; profiles: { full_name: string | null }[] }) => ({
+      id: order.id,
+      customer_name: order.profiles?.[0]?.full_name || 'Unknown',
+      total_amount: order.total_amount,
+      created_at: order.created_at,
+    }));
   }
 }

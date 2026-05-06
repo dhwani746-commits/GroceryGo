@@ -1,6 +1,7 @@
 'use client';
 
 import { Header } from '@/components/shared/Header';
+import { Breadcrumb } from '@/components/shared/Breadcrumb';
 import { useState } from 'react';
 import {
   Send,
@@ -82,6 +83,12 @@ export default function ContactPage() {
       <Header hideSearch />
 
       <main className="max-w-5xl mx-auto px-4 py-10 mt-20">
+        {/* Breadcrumb */}
+        <Breadcrumb
+          items={[{ label: 'Contact Us' }]}
+          className="mb-6"
+        />
+
         {/* Page header */}
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-1">

@@ -6,7 +6,7 @@ export async function GET() {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from('products')
-      .select('*, category:categories(name)')
+      .select('id, name, slug, price, original_price, discount_percentage, stock_quantity, category, is_visible, image_urls, created_at, deleted_at')
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
@@ -30,8 +30,9 @@ export async function POST(req: Request) {
         slug: body.slug,
         description: body.description,
         price: parseFloat(body.price),
+        original_price: body.original_price ? parseFloat(body.original_price) : null,
         stock_quantity: parseInt(body.stock_quantity),
-        category_id: body.category_id,
+        category: body.category,
         image_urls: body.image_urls || [],
         is_visible: body.is_visible !== false,
       }])

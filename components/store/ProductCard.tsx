@@ -11,6 +11,8 @@ interface Product {
   name: string;
   slug: string;
   price: string;
+  original_price?: number | null;
+  discount_percentage?: number | null;
   description: string | null;
   image_urls: string[] | null;
   stock_quantity: number;
@@ -23,7 +25,11 @@ export function ProductCard({ product }: { product: Product }) {
   const isInCart = !!cartItem;
 
   const priceInCents = Math.round(Number(product.price) * 100);
-  const discount = getProductDiscount(product.id, priceInCents);
+  const discount = getProductDiscount({
+    price: Number(product.price),
+    original_price: product.original_price,
+    discount_percentage: product.discount_percentage,
+  });
   const originalPrice = discount?.originalPrice ?? priceInCents;
   const savingsInCents = discount?.savingsInCents ?? 0;
   const discountPercent = discount?.discountPercent ?? 0;

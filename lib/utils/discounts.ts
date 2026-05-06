@@ -3,35 +3,41 @@
  * Handles discount calculations and badge generation
  */
 
+export interface ProductDiscountData {
+  original_price?: number | null;
+  discount_percentage?: number | null;
+  price: number;
+}
+
 /**
- * Calculates if a product should have a discount based on its ID and price
- * Uses a deterministic algorithm so the same product always gets the same discount
- * Returns null if no discount
+ * Calculates discount based on database values
+ * Uses original_price and discount_percentage from product record
+ * Returns null if no discount is set
  */
-export function getProductDiscount(productId: string, priceInCents: number): {
+export function getProductDiscount(
+  product: ProductDiscountData
+): {
   originalPrice: number;
   discountPercent: number;
   savingsInCents: number;
 } | null {
-  // Use hash of product ID to determine if discounted (20% of products)
-  // This is deterministic so same product always has same discount
-  const hashCode = Array.from(productId).reduce((acc, char) => {
-    return ((acc << 5) - acc) + char.charCodeAt(0);
-  }, 0);
+  const priceInCents = Math.round(product.price * 100);
 
-  const hasDiscount = Math.abs(hashCode) % 5 === 0; // 20% of products
-  if (!hasDiscount) return null;
+  // If we have an original price that's higher than the selling price, show discount
+  if (product.original_price && product.original_price > product.price) {
+    const originalPriceInCents = Math.round(product.original_price * 100);
+    const savingsInCents = originalPriceInCents - priceInCents;
+    const discountPercent = product.discount_percentage ??
+      Math.round((savingsInCents / originalPriceInCents) * 100);
 
-  // Discount between 15-30%
-  const discountPercent = 15 + (Math.abs(hashCode) % 16);
-  const savingsInCents = Math.round(priceInCents * discountPercent / 100);
-  const originalPrice = priceInCents + savingsInCents;
+    return {
+      originalPrice: originalPriceInCents,
+      discountPercent,
+      savingsInCents,
+    };
+  }
 
-  return {
-    originalPrice,
-    discountPercent,
-    savingsInCents,
-  };
+  return null;
 }
 
 /**

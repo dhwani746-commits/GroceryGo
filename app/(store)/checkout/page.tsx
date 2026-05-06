@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useCart } from '@/lib/store/cart';
 import { formatCurrency } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
+import { Header } from '@/components/shared/Header';
+import { Breadcrumb } from '@/components/shared/Breadcrumb';
 import {
   ShoppingBag,
   MapPin,
@@ -400,7 +402,17 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-neutral-50">
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <Header hideSearch />
+      <div className="max-w-6xl mx-auto px-4 py-8 mt-20">
+        {/* Breadcrumb */}
+        <Breadcrumb
+          items={[
+            { label: 'Shopping Cart', href: '/cart' },
+            { label: 'Checkout' },
+          ]}
+          className="mb-6"
+        />
+
         <h1 className="text-2xl font-bold text-neutral-900 mb-8">Checkout</h1>
 
         <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-5 gap-8">
