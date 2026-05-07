@@ -1,10 +1,11 @@
 'use client';
 
 import Image from 'next/image';
-import { Minus, Plus, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils/formatCurrency';
+import { QuantitySelector } from '@/components/shared/QuantitySelector';
 
 interface CartItemProps {
   item: {
@@ -69,29 +70,14 @@ export function CartItem({ item, onUpdateQuantity, onRemove }: CartItemProps) {
 
             {/* Quantity Controls */}
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onUpdateQuantity(product.id, quantity - 1)}
-                  disabled={quantity <= 1}
-                  className="h-8 w-8 p-0"
-                >
-                  <Minus className="h-3 w-3" />
-                </Button>
-                <span className="w-12 text-center font-medium">
-                  {quantity}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onUpdateQuantity(product.id, quantity + 1)}
-                  disabled={quantity >= product.stockCount}
-                  className="h-8 w-8 p-0"
-                >
-                  <Plus className="h-3 w-3" />
-                </Button>
-              </div>
+              <QuantitySelector
+                quantity={quantity}
+                maxQuantity={product.stockCount}
+                onQuantityChange={(newQuantity) => onUpdateQuantity(product.id, newQuantity)}
+                size="sm"
+                variant="buttons"
+                showLabel={false}
+              />
               <div className="font-semibold text-gray-900">
                 {formatCurrency(subtotal)}
               </div>

@@ -6,12 +6,13 @@ import { Header } from '@/components/shared/Header';
 import { Breadcrumb } from '@/components/shared/Breadcrumb';
 import { ProductGallery } from '@/components/store/ProductGallery';
 import { RelatedProducts } from '@/components/store/RelatedProducts';
+import { QuantitySelector } from '@/components/shared/QuantitySelector';
 import { getProductDiscount } from '@/lib/utils/discounts';
 import { useCart, CartItem } from '@/lib/store/cart';
 import { useQuery } from '@tanstack/react-query';
 import { getProductBySlug } from '@/lib/api/products';
 import { Product } from '@/lib/store/products';
-import { ShoppingCart, Minus, Plus, Check, ArrowLeft } from 'lucide-react';
+import { ShoppingCart, Check, ArrowLeft } from 'lucide-react';
 
 export default function ProductPage() {
   const params = useParams();
@@ -29,7 +30,65 @@ export default function ProductPage() {
   const isInCart = !!cartItem;
   const displayQuantity = cartItem?.quantity ?? quantity;
 
-  if (loading) return <div className="text-center py-20">Loading...</div>;
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen bg-white">
+        <Header hideSearch />
+        <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 lg:pt-32 pb-24 md:pb-8">
+          {/* Mobile Back Button Skeleton */}
+          <div className="md:hidden h-8 mb-4 bg-gray-200 rounded w-20 animate-pulse" />
+          
+          {/* Breadcrumb Skeleton - Visible on all screen sizes */}
+          <div className="mb-4 md:mb-6">
+            <div className="h-5 bg-gray-200 rounded w-48 animate-pulse" />
+          </div>
+
+          {/* Product Grid Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-12">
+            {/* Product Gallery Skeleton */}
+            <div className="order-1">
+              <ProductGallery images={null} productName="" isLoading={true} />
+            </div>
+
+            {/* Details Skeleton */}
+            <div className="order-2 space-y-4 md:space-y-6">
+              {/* Product Name Skeleton */}
+              <div className="space-y-2">
+                <div className="h-8 bg-gray-200 rounded w-3/4 animate-pulse" />
+                <div className="h-5 bg-gray-200 rounded w-24 animate-pulse" />
+              </div>
+              
+              {/* Price Skeleton */}
+              <div className="flex items-baseline gap-3">
+                <div className="h-10 bg-gray-200 rounded w-32 animate-pulse" />
+                <div className="h-7 bg-gray-200 rounded w-24 animate-pulse" />
+              </div>
+              
+              {/* Description Skeleton */}
+              <div className="bg-neutral-50 rounded-lg p-4 md:p-6 space-y-2">
+                <div className="h-4 bg-gray-200 rounded w-20 animate-pulse" />
+                <div className="space-y-2">
+                  <div className="h-4 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-4 bg-gray-200 rounded w-5/6 animate-pulse" />
+                  <div className="h-4 bg-gray-200 rounded w-4/6 animate-pulse" />
+                </div>
+              </div>
+
+              {/* Add to Cart Skeleton */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 bg-gray-200 rounded w-32 animate-pulse" />
+                  <div className="h-12 bg-gray-200 rounded flex-1 animate-pulse" />
+                </div>
+                <div className="h-4 bg-gray-200 rounded w-40 animate-pulse" />
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   if (!product) return <div className="text-center py-20">Product not found</div>;
 
   const inStock = product.stock_quantity > 0;
@@ -59,40 +118,24 @@ export default function ProductPage() {
     }
   };
 
-  const handleDecreaseQty = () => {
+  const handleQuantityChange = (newQuantity: number) => {
+    setQuantity(newQuantity);
+    
+    // Update cart if item is already in cart
     if (isInCart && cartItem) {
-      const newQty = cartItem.quantity > 1 ? cartItem.quantity - 1 : 1;
-      updateQuantity(product.id, newQty);
-    } else {
-      setQuantity((q) => (q > 1 ? q - 1 : 1));
-    }
-  };
-
-  const handleIncreaseQty = () => {
-    if (isInCart && cartItem) {
-      const newQty = cartItem.quantity < product.stock_quantity ? cartItem.quantity + 1 : cartItem.quantity;
-      updateQuantity(product.id, newQty);
-    } else {
-      setQuantity((q) => (q < product.stock_quantity ? q + 1 : q));
+      const finalQty = newQuantity <= product.stock_quantity ? newQuantity : cartItem.quantity;
+      updateQuantity(product.id, finalQty);
     }
   };
 
   return (
     <div className="flex flex-col min-h-screen bg-white">
-      <Header />
+      <Header hideSearch />
 
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 lg:pt-32 pb-24 md:pb-8">
-        {/* Mobile Back Button */}
-        <button
-          onClick={() => window.history.back()}
-          className="md:hidden flex items-center gap-2 text-neutral-600 mb-4 -ml-1"
-        >
-          <ArrowLeft size={20} />
-          <span className="text-sm font-medium">Back</span>
-        </button>
 
-        {/* Breadcrumb - Hidden on mobile, shown on md+ */}
-        <div className="hidden md:block mb-6">
+        {/* Breadcrumb - Visible on all screen sizes */}
+        <div className="mb-4 md:mb-6">
           <Breadcrumb
             items={[
               ...(product.category ? [{ label: product.category, href: `/search?q=${encodeURIComponent(product.category)}` }] : []),
@@ -105,7 +148,7 @@ export default function ProductPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-12">
           {/* Product Gallery */}
           <div className="order-1">
-            <ProductGallery images={product.image_urls} productName={product.name} />
+            <ProductGallery images={product.image_urls} productName={product.name} isLoading={loading} />
           </div>
 
           {/* Details */}
@@ -180,57 +223,48 @@ export default function ProductPage() {
             )}
 
             {/* Quantity Selector - Desktop Only */}
-            {inStock && (
-              <div className="hidden md:flex items-center gap-4">
-                <label className="font-semibold text-neutral-700">Quantity:</label>
-                <div className="flex items-center border-2 border-neutral-300 rounded-lg overflow-hidden">
-                  <button
-                    onClick={handleDecreaseQty}
-                    className="px-4 py-2 hover:bg-neutral-100 text-neutral-700 transition active:bg-neutral-200"
-                    aria-label="Decrease quantity"
-                  >
-                    <Minus size={18} />
-                  </button>
-                  <span className="px-4 py-2 border-x-2 border-neutral-300 text-neutral-900 font-semibold min-w-[3rem] text-center">
-                    {displayQuantity}
-                  </span>
-                  <button
-                    onClick={handleIncreaseQty}
-                    className="px-4 py-2 hover:bg-neutral-100 text-neutral-700 transition active:bg-neutral-200"
-                    aria-label="Increase quantity"
-                  >
-                    <Plus size={18} />
-                  </button>
-                </div>
-              </div>
-            )}
+            <div className="hidden md:block">
+              <QuantitySelector
+                quantity={quantity}
+                maxQuantity={product.stock_quantity}
+                onQuantityChange={handleQuantityChange}
+                disabled={!inStock}
+                size="md"
+                variant="dropdown"
+              />
+            </div>
 
             {/* Add to Cart Button - Desktop */}
-            {inStock && (
-              <div className="hidden md:block">
-                <button
-                  onClick={handleAddToCart}
-                  disabled={isInCart}
-                  className={`w-full py-4 rounded-xl font-semibold transition flex items-center justify-center gap-2 ${
-                    isInCart
-                      ? 'bg-green-500 text-white cursor-not-allowed'
-                      : 'bg-brand-primary-600 text-white hover:bg-brand-primary-700 active:bg-brand-primary-800'
-                  }`}
-                >
-                  {isInCart ? (
-                    <>
-                      <Check size={20} />
-                      Added to Cart
-                    </>
-                  ) : (
-                    <>
-                      <ShoppingCart size={20} />
-                      Add to Cart
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
+            <div className="hidden md:block">
+              <button
+                onClick={handleAddToCart}
+                disabled={!inStock || isInCart}
+                className={`w-full py-4 rounded-xl font-semibold transition flex items-center justify-center gap-2 ${
+                  !inStock
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : isInCart
+                    ? 'bg-green-500 text-white cursor-not-allowed'
+                    : 'bg-brand-primary-600 text-white hover:bg-brand-primary-700 active:bg-brand-primary-800'
+                }`}
+              >
+                {!inStock ? (
+                  <>
+                    <ShoppingCart size={20} />
+                    Out of Stock
+                  </>
+                ) : isInCart ? (
+                  <>
+                    <Check size={20} />
+                    Added to Cart
+                  </>
+                ) : (
+                  <>
+                    <ShoppingCart size={20} />
+                    Add to Cart
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -245,55 +279,53 @@ export default function ProductPage() {
       </main>
 
       {/* Mobile Sticky Bottom Bar */}
-      {inStock && (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 px-4 py-3 z-50">
-          <div className="flex items-center gap-4 max-w-md mx-auto">
-            {/* Quantity Selector */}
-            <div className="flex items-center border-2 border-neutral-300 rounded-lg overflow-hidden flex-shrink-0">
-              <button
-                onClick={handleDecreaseQty}
-                className="px-3 py-2.5 hover:bg-neutral-100 text-neutral-700 active:bg-neutral-200"
-                aria-label="Decrease quantity"
-              >
-                <Minus size={16} />
-              </button>
-              <span className="px-3 py-2.5 border-x-2 border-neutral-300 text-neutral-900 font-semibold min-w-[2.5rem] text-center text-sm">
-                {displayQuantity}
-              </span>
-              <button
-                onClick={handleIncreaseQty}
-                className="px-3 py-2.5 hover:bg-neutral-100 text-neutral-700 active:bg-neutral-200"
-                aria-label="Increase quantity"
-              >
-                <Plus size={16} />
-              </button>
-            </div>
-
-            {/* Add to Cart Button */}
-            <button
-              onClick={handleAddToCart}
-              disabled={isInCart}
-              className={`flex-1 py-3 rounded-xl font-semibold transition flex items-center justify-center gap-2 ${
-                isInCart
-                  ? 'bg-green-500 text-white cursor-not-allowed'
-                  : 'bg-brand-primary-600 text-white active:bg-brand-primary-700'
-              }`}
-            >
-              {isInCart ? (
-                <>
-                  <Check size={18} />
-                  Added
-                </>
-              ) : (
-                <>
-                  <ShoppingCart size={18} />
-                  Add ₹{(Number(product.price) * displayQuantity).toFixed(0)}
-                </>
-              )}
-            </button>
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 px-4 py-3 z-40">
+        <div className="flex items-center gap-4 max-w-md mx-auto">
+          {/* Quantity Selector - Mobile */}
+          <div className="flex-shrink-0">
+            <QuantitySelector
+              quantity={quantity}
+              maxQuantity={product.stock_quantity}
+              onQuantityChange={handleQuantityChange}
+              disabled={!inStock}
+              size="sm"
+              variant="dropdown"
+              showLabel={true}
+              label="Qty:"
+            />
           </div>
+
+          {/* Add to Cart Button */}
+          <button
+            onClick={handleAddToCart}
+            disabled={!inStock || isInCart}
+            className={`flex-1 py-3 rounded-xl font-semibold transition flex items-center justify-center gap-2 ${
+              !inStock
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : isInCart
+                ? 'bg-green-500 text-white cursor-not-allowed'
+                : 'bg-brand-primary-600 text-white active:bg-brand-primary-700'
+            }`}
+          >
+            {!inStock ? (
+              <>
+                <ShoppingCart size={18} />
+                Out of Stock
+              </>
+            ) : isInCart ? (
+              <>
+                <Check size={18} />
+                Added
+              </>
+            ) : (
+              <>
+                <ShoppingCart size={18} />
+                Add ₹{(Number(product.price) * displayQuantity).toFixed(0)}
+              </>
+            )}
+          </button>
         </div>
-      )}
+      </div>
     </div>
   );
 }

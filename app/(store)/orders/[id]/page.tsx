@@ -4,12 +4,12 @@ import { OrderRepository } from '@/lib/repositories/order.repository';
 import { formatCurrency } from '@/lib/utils';
 import Link from 'next/link';
 import { Header } from '@/components/shared/Header';
+import { Breadcrumb } from '@/components/shared/Breadcrumb';
 import {
   CheckCircle2,
   Package,
   MapPin,
   Clock,
-  ArrowLeft,
   Home,
   ShoppingBag,
 } from 'lucide-react';
@@ -73,7 +73,18 @@ export default async function OrderDetailPage({
   return (
     <div className="min-h-screen bg-neutral-50">
       <Header hideSearch />
-      <div className="max-w-4xl mx-auto px-4 py-8 mt-20">
+      <div className="max-w-4xl mx-auto px-4 py-8 mt-15">
+
+        {/* Breadcrumb */}
+        <div className="mb-6">
+          <Breadcrumb
+            items={[
+              { label: 'Home', href: '/' },
+              { label: 'My Orders', href: '/orders' },
+              { label: `Order #${order.id.split('-')[0].toUpperCase()}` }
+            ]}
+          />
+        </div>
 
         {/* Success Banner */}
         {isSuccess && (
@@ -87,36 +98,6 @@ export default async function OrderDetailPage({
             </div>
           </div>
         )}
-
-        <div className="flex items-center justify-between mb-6">
-          {isSuccess ? (
-            // Fresh order: primary CTA is to keep shopping, secondary is to view all orders
-            <div className="flex items-center gap-4">
-              <Link
-                href="/"
-                className="flex items-center gap-1.5 text-sm font-medium text-brand-primary-600 hover:text-brand-primary-800 transition"
-              >
-                <Home size={15} /> Continue Shopping
-              </Link>
-              <Link
-                href="/orders"
-                className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-900 transition"
-              >
-                All Orders
-              </Link>
-            </div>
-          ) : (
-            <Link
-              href="/orders"
-              className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-900 transition"
-            >
-              <ArrowLeft size={16} /> Back to Orders
-            </Link>
-          )}
-          <span className="text-sm text-neutral-500">
-            Order #{order.id.split('-')[0].toUpperCase()}
-          </span>
-        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* ── Left: Order Items ── */}

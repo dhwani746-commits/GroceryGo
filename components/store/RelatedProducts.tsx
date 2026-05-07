@@ -147,7 +147,7 @@ export function RelatedProducts({
   if (!products.length) return null;
 
   return (
-    <section className="m-6 lg:m-24 pt-8 border-t border-neutral-200">
+    <section className="lg:pt-8 border-t border-neutral-200">
       <h3 className="text-2xl font-bold text-gray-900 mb-6">
         {sectionTitle}
       </h3>

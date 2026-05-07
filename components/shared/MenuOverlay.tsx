@@ -65,9 +65,9 @@ export function MenuOverlay({
         />
       )}
 
-      {/* Overlay - Left on tablet, full width on mobile */}
+      {/* Overlay - Full width on mobile */}
       <div
-        className={`fixed top-0 left-0 h-full bg-white shadow-xl z-50 transform transition-transform duration-300 ease-out w-72 lg:hidden flex flex-col ${isOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`fixed top-0 left-0 h-full bg-white shadow-xl z-50 transform transition-transform duration-300 ease-out w-full lg:hidden flex flex-col ${isOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
       >
         {/* Header */}

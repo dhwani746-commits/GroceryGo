@@ -36,14 +36,6 @@ export default function OrdersClient({ orders }: OrdersClientProps) {
 
   return (
     <div className="space-y-4">
-      {/* Back button for easier navigation */}
-      <Link
-        href="/"
-        className="inline-flex items-center gap-2 text-md text-brand-primary-600 rounded-lg hover:text-neutral-900 mb-6 transition"
-      >
-        <ArrowLeft size={16} />
-        Back to Shopping
-      </Link>
       {orders.map((order: any) => {
         const badgeCls =
           STATUS_BADGE[order.status] ??

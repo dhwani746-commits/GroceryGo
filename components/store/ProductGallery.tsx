@@ -6,11 +6,28 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 interface ProductGalleryProps {
   images: string[] | null;
   productName: string;
+  isLoading?: boolean;
 }
 
-export function ProductGallery({ images, productName }: ProductGalleryProps) {
+export function ProductGallery({ images, productName, isLoading = false }: ProductGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const imageArray = images && images.length > 0 ? images : [];
+
+  // Skeleton loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        {/* Main image skeleton */}
+        <div className="h-96 bg-gray-200 rounded-lg animate-pulse" />
+        {/* Thumbnails skeleton */}
+        <div className="flex gap-2">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-20 w-20 bg-gray-200 rounded-lg animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   if (imageArray.length === 0) {
     return (

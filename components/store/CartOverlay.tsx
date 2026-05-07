@@ -3,7 +3,8 @@
 import { useCart } from '@/lib/store/cart';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { X, Minus, Plus, Trash2 } from 'lucide-react';
+import { X, Trash2 } from 'lucide-react';
+import { QuantitySelector } from '@/components/shared/QuantitySelector';
 
 interface CartOverlayProps {
   isOpen: boolean;
@@ -118,35 +119,14 @@ export function CartOverlay({ isOpen, onClose }: CartOverlayProps) {
 
                       {/* Quantity Controls Below */}
                       <div className="flex items-center mt-2">
-                        {/* Minus Button */}
-                        <button
-                          onClick={() =>
-                            updateQuantity(
-                              item.id,
-                              Math.max(1, item.quantity - 1)
-                            )
-                          }
-                          className="w-10 h-10 flex items-center justify-center border border-gray-300 rounded-l-md hover:bg-status-danger-100"
-                          aria-label="Decrease quantity"
-                        >
-                          <Minus size={16} strokeWidth={1.5} />
-                        </button>
-
-                        {/* Quantity Box */}
-                        <span className="w-10 h-10 flex items-center justify-center border-t border-b border-gray-300 text-black font-medium text-sm">
-                          {item.quantity}
-                        </span>
-
-                        {/* Plus Button */}
-                        <button
-                          onClick={() =>
-                            updateQuantity(item.id, item.quantity + 1)
-                          }
-                          className="w-10 h-10 flex items-center justify-center border border-gray-300 rounded-r-md hover:bg-status-success-100"
-                          aria-label="Increase quantity"
-                        >
-                          <Plus size={16} strokeWidth={1.5} />
-                        </button>
+                        <QuantitySelector
+                          quantity={item.quantity}
+                          maxQuantity={999}
+                          onQuantityChange={(newQuantity) => updateQuantity(item.id, newQuantity)}
+                          size="sm"
+                          variant="dropdown"
+                          showLabel={false}
+                        />
                       </div>
 
                       {/* Price */}

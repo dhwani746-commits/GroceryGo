@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useCart } from '@/lib/store/cart';
 import { formatCurrency } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/lib/hooks/useAuth';
 import { Header } from '@/components/shared/Header';
 import { Breadcrumb } from '@/components/shared/Breadcrumb';
 import {
@@ -68,6 +69,7 @@ export default function CheckoutPage() {
   const router = useRouter();
   const supabase = createClient();
   const { items, clearCart, getTotalPrice, _hasHydrated } = useCart();
+  const { user, profile } = useAuth();
 
   const [address, setAddress] = useState<AddressForm>(EMPTY_ADDRESS);
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
@@ -97,6 +99,16 @@ export default function CheckoutPage() {
     });
   }, [router, supabase.auth]);
 
+  // Auto-fill address name with user's full name when profile is loaded
+  useEffect(() => {
+    if (profile?.full_name && !address.name && !isSavedAddressLocked) {
+      setAddress((prev) => ({
+        ...prev,
+        name: profile.full_name || ''
+      }));
+    }
+  }, [profile, address.name, isSavedAddressLocked]);
+
   useEffect(() => {
     if (!isAuthenticated) return;
     fetch('/api/addresses')
@@ -112,6 +124,11 @@ export default function CheckoutPage() {
   const subtotal = getTotalPrice(); // prices in rupees (NUMERIC from DB)
   const discountAmount = promo?.discountAmount ?? 0;
   const total = Math.max(0, subtotal - discountAmount);
+
+  const validateIndianPhone = (phone: string): boolean => {
+    // Phone should be just 10 digits starting with 6-9 (without +91)
+    return /^[6-9]\d{9}$/.test(phone);
+  };
 
   const handleAddressChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -129,6 +146,16 @@ export default function CheckoutPage() {
         }));
         setIsPincodeValidated(false);
         setPincodeLookupError('');
+        return;
+      }
+      if (name === 'phone') {
+        // Allow only digits, max 10 characters, must start with 6-9
+        let phoneValue = value.replace(/[^0-9]/g, '').slice(0, 10);
+        
+        // Only allow if first digit is 6-9 or empty
+        if (phoneValue === '' || /^[6-9]/.test(phoneValue)) {
+          setAddress((prev) => ({ ...prev, [name]: phoneValue }));
+        }
         return;
       }
       setAddress((prev) => ({ ...prev, [name]: value }));
@@ -473,17 +500,28 @@ export default function CheckoutPage() {
                   disabled={isAddressLocked}
                   required
                 />
-                <InputField
-                  label="Phone Number"
-                  name="phone"
-                  value={address.phone}
-                  onChange={handleAddressChange}
-                  placeholder="9876543210"
-                  inputMode="numeric"
-                  maxLength={10}
-                  disabled={isAddressLocked}
-                  required
-                />
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+                    Phone Number <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex">
+                    <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-neutral-300 bg-neutral-100 text-neutral-600 font-medium">
+                      +91
+                    </span>
+                    <input
+                      name="phone"
+                      type="tel"
+                      value={address.phone}
+                      onChange={handleAddressChange}
+                      placeholder="9876543210"
+                      inputMode="numeric"
+                      maxLength={10}
+                      disabled={isAddressLocked}
+                      required
+                      className="flex-1 rounded-r-lg border border-neutral-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-500 focus:border-transparent transition"
+                    />
+                  </div>
+                </div>
                 <div className="sm:col-span-2">
                   <InputField
                     label="Address Line 1"
