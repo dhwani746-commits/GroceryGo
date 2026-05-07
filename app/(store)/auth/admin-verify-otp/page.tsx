@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Mail, ArrowLeft, RefreshCw, CheckCircle2, Shield } from 'lucide-react';
 
 export default function AdminVerifyOTPPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const [mounted, setMounted] = useState(false);
   const [otp, setOtp] = useState(['', '', '', '']);
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);
@@ -17,20 +17,19 @@ export default function AdminVerifyOTPPage() {
   const [timeLeft, setTimeLeft] = useState(120);
   const [canResend, setCanResend] = useState(false);
   const [otpStatusLoaded, setOtpStatusLoaded] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [email, setEmail] = useState('');
 
   useEffect(() => {
     setMounted(true);
-  }, []);
-
-  const email = mounted ? (searchParams?.get('email') || '') : '';
-
-  useEffect(() => {
-    if (!mounted) return;
-    if (!email) {
+    // Only access searchParams after mounting
+    const searchParams = new URLSearchParams(window.location.search);
+    const emailParam = searchParams.get('email') || '';
+    setEmail(emailParam);
+    
+    if (!emailParam) {
       router.push('/auth/admin-login');
     }
-  }, [email, router, mounted]);
+  }, [router]);
 
   // Fetch OTP status to get accurate timer
   useEffect(() => {
@@ -72,14 +71,14 @@ export default function AdminVerifyOTPPage() {
     setOtp(newOtp);
 
     // Auto-focus next input
-    if (value && index < 3) {
+    if (value && index < 3 && mounted) {
       const nextInput = document.getElementById(`otp-${index + 1}`) as HTMLInputElement;
       nextInput?.focus();
     }
   };
 
   const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+    if (e.key === 'Backspace' && !otp[index] && index > 0 && mounted) {
       const prevInput = document.getElementById(`otp-${index - 1}`) as HTMLInputElement;
       prevInput?.focus();
     }
