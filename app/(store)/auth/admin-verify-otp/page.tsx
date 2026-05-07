@@ -17,18 +17,24 @@ export default function AdminVerifyOTPPage() {
   const [timeLeft, setTimeLeft] = useState(120);
   const [canResend, setCanResend] = useState(false);
   const [otpStatusLoaded, setOtpStatusLoaded] = useState(false);
-
-  const email = searchParams.get('email') || '';
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const email = mounted ? (searchParams?.get('email') || '') : '';
+
+  useEffect(() => {
+    if (!mounted) return;
     if (!email) {
       router.push('/auth/admin-login');
     }
-  }, [email, router]);
+  }, [email, router, mounted]);
 
   // Fetch OTP status to get accurate timer
   useEffect(() => {
-    if (!email || otpStatusLoaded) return;
+    if (!mounted || !email || otpStatusLoaded) return;
 
     const fetchOtpStatus = async () => {
       try {
@@ -47,7 +53,7 @@ export default function AdminVerifyOTPPage() {
     };
 
     fetchOtpStatus();
-  }, [email, otpStatusLoaded]);
+  }, [email, otpStatusLoaded, mounted]);
 
   useEffect(() => {
     if (timeLeft > 0 && !canResend) {
