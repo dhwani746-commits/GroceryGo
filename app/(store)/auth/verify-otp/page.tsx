@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Mail, ArrowLeft, RefreshCw, CheckCircle2 } from 'lucide-react';
 
-export default function VerifyOTPPage() {
+function VerifyOTPContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [otp, setOtp] = useState(['', '', '', '']);
@@ -295,5 +295,20 @@ export default function VerifyOTPPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function VerifyOTPPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-brand-primary-50 via-neutral-0 to-brand-accent-50 flex items-center justify-center px-4">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-brand-primary-200 border-t-brand-primary-600 rounded-full animate-spin mx-auto"></div>
+          <p className="mt-4 text-neutral-600">Loading verification page...</p>
+        </div>
+      </div>
+    }>
+      <VerifyOTPContent />
+    </Suspense>
   );
 }
