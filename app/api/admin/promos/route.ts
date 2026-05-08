@@ -25,6 +25,7 @@ const PromoSchema = z.object({
   discount_value: z.number().positive(),
   expires_at: OptionalDateTimeSchema.optional(),
   usage_limit: z.number().int().positive().optional().nullable(),
+  one_per_user: z.boolean().default(false),
   is_active: z.boolean().default(true),
 });
 

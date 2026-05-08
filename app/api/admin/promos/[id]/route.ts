@@ -26,6 +26,7 @@ const UpdatePromoSchema = z.object({
   expires_at: OptionalDateTimeSchema.optional(),
   usage_limit: z.number().int().positive().nullable().optional(),
   discount_value: z.number().positive().optional(),
+  one_per_user: z.boolean().optional(),
 });
 
 async function requireAdmin() {
@@ -42,6 +43,69 @@ async function requireAdmin() {
     .single();
 
   return profile?.role === 'admin' ? { user } : null;
+}
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const ctx = await requireAdmin();
+  if (!ctx) return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+
+  const { id } = await params;
+
+  try {
+    const adminSupabase = createAdminClient();
+
+    // Get promo code details
+    const { data: promo, error: promoError } = await adminSupabase
+      .from('promo_codes')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (promoError || !promo) {
+      return NextResponse.json({ success: false, error: 'Promo code not found' }, { status: 404 });
+    }
+
+    // Get usage history with order details
+    const { data: usageHistory, error: usageError } = await adminSupabase
+      .from('promo_code_usage')
+      .select(`
+        id,
+        discount_amount,
+        used_at,
+        user_id,
+        order_id,
+        profiles!inner (
+          full_name,
+          email
+        ),
+        orders!inner (
+          id,
+          status,
+          total_amount,
+          created_at
+        )
+      `)
+      .eq('promo_code_id', id)
+      .order('used_at', { ascending: false });
+
+    if (usageError) {
+      console.error('Error fetching usage history:', usageError);
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        promo,
+        usageHistory: usageHistory || []
+      }
+    });
+  } catch (error) {
+    console.error('GET /api/admin/promos/[id] error:', error);
+    return NextResponse.json({ success: false, error: 'Failed to fetch promo code details' }, { status: 500 });
+  }
 }
 
 export async function PATCH(

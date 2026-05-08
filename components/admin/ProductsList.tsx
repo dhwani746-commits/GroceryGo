@@ -5,6 +5,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { toast } from 'sonner';
 import { Pencil, Trash2, Eye, EyeOff, Search, ArrowLeft, ArrowRight, ImagePlus, Boxes, CircleSlash, AlertCircle, Filter, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { ProductGridSkeleton, TableSkeleton, MobileCardSkeleton, FilterSkeleton } from './SkeletonLoading';
+import { AdminBreadcrumbs } from './AdminBreadcrumbs';
 
 interface Product {
   id: string;
@@ -317,10 +319,25 @@ export function ProductsList() {
   const outOfStockCount = products.filter(p => p.stock_quantity === 0).length;
   const lowStockCount = products.filter(p => p.stock_quantity > 0 && p.stock_quantity <= 10).length;
 
-  if (loading) return <div className="p-6 text-neutral-500">Loading products...</div>;
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <FilterSkeleton />
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="hidden md:block">
+            <TableSkeleton rows={10} />
+          </div>
+          <div className="md:hidden">
+            <MobileCardSkeleton cards={5} />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-6">
+      <AdminBreadcrumbs items={[{ label: 'Products' }]} />
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-xl font-medium text-neutral-900">Product Details</h1>
         <Link

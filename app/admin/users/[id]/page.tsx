@@ -24,6 +24,7 @@ import {
   XCircle,
   Home,
 } from 'lucide-react';
+import { UserDetailSkeleton } from '@/components/admin/SkeletonLoading';
 
 interface UserAddress {
   id: string;
@@ -109,13 +110,7 @@ export default function AdminUserDetailPage() {
   }, [fetchUser]);
 
   if (loading) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-center py-20">
-          <Loader2 size={32} className="animate-spin text-gray-400" />
-        </div>
-      </div>
-    );
+    return <UserDetailSkeleton />;
   }
 
   if (!user) {

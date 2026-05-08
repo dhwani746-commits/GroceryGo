@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { Users, RefreshCw, Loader2, Search, User, Mail, Phone, Calendar, Shield, Filter, ChevronDown, ShoppingBag, ArrowRight } from 'lucide-react';
+import { UserCardSkeleton, FilterSkeleton } from '@/components/admin/SkeletonLoading';
+import { AdminBreadcrumbs } from '@/components/admin/AdminBreadcrumbs';
 import { formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -94,6 +96,7 @@ export default function AdminUsersPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 overflow-x-hidden">
+      <AdminBreadcrumbs items={[{ label: 'Users' }]} />
       {/* Header */}
       <div className="flex items-center justify-between gap-4 mb-6">
         <div>
@@ -159,10 +162,8 @@ export default function AdminUsersPage() {
       {/* Users List */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         {loading ? (
-          <div className="flex items-center justify-center py-20 text-gray-400">
-            <Loader2 size={28} className="animate-spin" />
-          </div>
-        ) : sorted.length === 0 ? (
+          <UserCardSkeleton users={8} />
+        ) : filtered.length === 0 ? (
           <div className="py-20 text-center text-gray-400">
             <Users size={36} className="mx-auto mb-3 opacity-30" />
             <p>{search ? 'No users found matching your search' : 'No users yet'}</p>
@@ -258,18 +259,16 @@ export default function AdminUsersPage() {
                         </h4>
                         <div className="space-y-3">
                           {user.recent_orders.map((order) => (
-                            <div
+                            <Link
                               key={order.id}
-                              className="bg-white rounded-lg p-3 border border-gray-200"
+                              href={`/admin/orders/${order.id}`}
+                              className="bg-white rounded-lg p-3 border border-gray-200 hover:border-brand-primary-300 hover:shadow-md transition-all duration-200 block"
                             >
                               <div className="flex items-center justify-between">
                                 <div>
-                                  <Link
-                                    href={`/admin/orders/${order.id}`}
-                                    className="text-sm font-medium text-brand-primary-600 hover:underline"
-                                  >
+                                  <p className="text-sm font-medium text-brand-primary-600 hover:underline">
                                     #{order.id.split('-')[0].toUpperCase()}
-                                  </Link>
+                                  </p>
                                   <p className="text-xs text-gray-500">
                                     {new Date(order.created_at).toLocaleDateString('en-IN', {
                                       day: 'numeric', month: 'short', year: 'numeric'
@@ -290,7 +289,7 @@ export default function AdminUsersPage() {
                                   </span>
                                 </div>
                               </div>
-                            </div>
+                            </Link>
                           ))}
                         </div>
                         <Link

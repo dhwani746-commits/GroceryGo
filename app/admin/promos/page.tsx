@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { formatCurrency } from '@/lib/utils';
 import {
   Tag,
@@ -17,6 +18,8 @@ import {
   Calendar,
   Users,
 } from 'lucide-react';
+import { PromoCardSkeleton } from '@/components/admin/SkeletonLoading';
+import { AdminBreadcrumbs } from '@/components/admin/AdminBreadcrumbs';
 import { toast } from 'sonner';
 
 interface PromoCode {
@@ -27,6 +30,7 @@ interface PromoCode {
   expires_at: string | null;
   usage_limit: number | null;
   times_used: number;
+  one_per_user: boolean;
   is_active: boolean;
   created_at: string;
 }
@@ -37,6 +41,7 @@ const EMPTY_FORM = {
   discount_value: '',
   expires_at: '',
   usage_limit: '',
+  one_per_user: false,
   is_active: true,
 };
 
@@ -80,6 +85,7 @@ export default function AdminPromosPage() {
       discount_value: String(promo.discount_value),
       expires_at: promo.expires_at ? new Date(promo.expires_at).toISOString().slice(0, 16) : '',
       usage_limit: promo.usage_limit === null ? '' : String(promo.usage_limit),
+      one_per_user: promo.one_per_user,
       is_active: promo.is_active,
     });
     setEditingPromoId(promo.id);
@@ -102,6 +108,7 @@ export default function AdminPromosPage() {
       discount_value: Number(form.discount_value),
       expires_at: form.expires_at || null,
       usage_limit: form.usage_limit ? Number(form.usage_limit) : null,
+      one_per_user: form.one_per_user,
       is_active: form.is_active,
     };
 
@@ -162,6 +169,7 @@ export default function AdminPromosPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
+      <AdminBreadcrumbs items={[{ label: 'Promo Codes' }]} />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
@@ -269,6 +277,16 @@ export default function AdminPromosPage() {
             <div className="flex items-center gap-2 pt-6">
               <input
                 type="checkbox"
+                id="one_per_user"
+                checked={form.one_per_user}
+                onChange={(e) => setForm((f) => ({ ...f, one_per_user: e.target.checked }))}
+                className="rounded"
+              />
+              <label htmlFor="one_per_user" className="text-sm text-gray-700">One use per customer</label>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
                 id="is_active"
                 checked={form.is_active}
                 onChange={(e) => setForm((f) => ({ ...f, is_active: e.target.checked }))}
@@ -307,9 +325,7 @@ export default function AdminPromosPage() {
       {/* Promo List */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         {loading ? (
-          <div className="flex items-center justify-center py-20 text-gray-400">
-            <Loader2 size={28} className="animate-spin" />
-          </div>
+          <PromoCardSkeleton promos={6} />
         ) : promos.length === 0 ? (
           <div className="py-20 text-center text-gray-400">
             <Tag size={36} className="mx-auto mb-3 opacity-30" />
@@ -380,6 +396,12 @@ export default function AdminPromosPage() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-2">
+                            <Link
+                              href={`/admin/promos/${promo.id}`}
+                              className="px-3 py-1 text-xs border border-gray-200 rounded-lg hover:bg-gray-100 transition"
+                            >
+                              View
+                            </Link>
                             <button
                               onClick={() => toggleActive(promo)}
                               disabled={togglingId === promo.id}
