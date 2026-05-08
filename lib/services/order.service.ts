@@ -85,7 +85,7 @@ export class OrderService {
     if (input.promoCode) {
       const { data: promo, error: promoError } = await supabase
         .from('promo_codes')
-        .select('id, discount_type, discount_value, expires_at, usage_limit, times_used, is_active')
+        .select('id, discount_type, discount_value, expires_at, usage_limit, times_used, is_active, one_per_user')
         .eq('code', input.promoCode.toUpperCase().trim())
         .single();
 
@@ -100,6 +100,19 @@ export class OrderService {
       }
       if (promo.usage_limit !== null && promo.times_used >= promo.usage_limit) {
         throw new Error('PROMO_EXHAUSTED: Promo code usage limit reached');
+      }
+
+      // Check one-per-user constraint
+      if (promo.one_per_user) {
+        const { data: hasUsed } = await supabase
+          .rpc('has_user_used_promo_code', {
+            p_user_id: input.userId,
+            p_promo_code_id: promo.id
+          });
+
+        if (hasUsed) {
+          throw new Error('PROMO_USED_ONCE: This promo code can only be used once per user');
+        }
       }
 
       if (promo.discount_type === 'percentage') {
@@ -133,25 +146,28 @@ export class OrderService {
       idempotencyKey: input.idempotencyKey,
     });
 
-    // 5. Increment promo usage (non-blocking; failure doesn't abort the order)
-    if (promoCodeId && promoTimesUsed !== null) {
-      let updateQuery = supabase
-        .from('promo_codes')
-        .update({ times_used: promoTimesUsed + 1 })
-        .eq('id', promoCodeId)
-        .eq('times_used', promoTimesUsed);
-
-      if (promoUsageLimit !== null) {
-        updateQuery = updateQuery.lt('times_used', promoUsageLimit);
-      }
-
-      const { error } = await updateQuery;
-      if (error) {
-        console.error('Failed to increment promo usage:', {
-          promoCodeId,
-          promoTimesUsed,
-          error,
+    // 5. Record promo code usage (non-blocking; failure doesn't abort order)
+    if (promoCodeId) {
+      try {
+        // Record usage in promo_code_usage table using the database function
+        const { error: usageError } = await supabase.rpc('record_promo_code_usage', {
+          p_promo_code_id: promoCodeId,
+          p_user_id: input.userId,
+          p_order_id: order.id,
+          p_discount_amount: discountAmount
         });
+
+        if (usageError) {
+          console.error('Failed to record promo code usage:', {
+            promoCodeId,
+            userId: input.userId,
+            orderId: order.id,
+            discountAmount,
+            error: usageError,
+          });
+        }
+      } catch (error) {
+        console.error('Exception recording promo code usage:', error);
       }
     }
 
