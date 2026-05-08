@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Settings, User, Lock, Store, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { SettingsSkeleton } from '@/components/admin/SkeletonLoading';
+import { AdminBreadcrumbs } from '@/components/admin/AdminBreadcrumbs';
 import {
   getAdminProfile,
   getStoreSettings,
@@ -152,11 +154,7 @@ export default function AdminSettingsPage() {
   };
 
   if (pageLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[40vh]">
-        <Loader2 className="animate-spin text-brand-primary-600" size={32} />
-      </div>
-    );
+    return <SettingsSkeleton />;
   }
 
   const tabs: { id: SettingsTab; label: string; icon: typeof User }[] = [
@@ -167,6 +165,7 @@ export default function AdminSettingsPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
+      <AdminBreadcrumbs items={[{ label: 'Settings' }]} />
       <div className="flex items-center gap-2 mb-2">
         <Settings size={24} className="text-brand-primary-600" />
         <h1 className="text-2xl font-bold text-gray-900">Settings</h1>

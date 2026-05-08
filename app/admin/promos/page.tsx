@@ -17,6 +17,8 @@ import {
   Calendar,
   Users,
 } from 'lucide-react';
+import { PromoCardSkeleton } from '@/components/admin/SkeletonLoading';
+import { AdminBreadcrumbs } from '@/components/admin/AdminBreadcrumbs';
 import { toast } from 'sonner';
 
 interface PromoCode {
@@ -162,6 +164,7 @@ export default function AdminPromosPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
+      <AdminBreadcrumbs items={[{ label: 'Promo Codes' }]} />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
@@ -307,9 +310,7 @@ export default function AdminPromosPage() {
       {/* Promo List */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         {loading ? (
-          <div className="flex items-center justify-center py-20 text-gray-400">
-            <Loader2 size={28} className="animate-spin" />
-          </div>
+          <PromoCardSkeleton promos={6} />
         ) : promos.length === 0 ? (
           <div className="py-20 text-center text-gray-400">
             <Tag size={36} className="mx-auto mb-3 opacity-30" />

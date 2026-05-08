@@ -24,6 +24,8 @@ import {
   XCircle,
   RefreshCw,
 } from 'lucide-react';
+import { OrderDetailSkeleton } from '@/components/admin/SkeletonLoading';
+import { AdminBreadcrumbs } from '@/components/admin/AdminBreadcrumbs';
 
 interface OrderItem {
   id: string;
@@ -134,13 +136,7 @@ export default function AdminOrderDetailPage() {
   };
 
   if (loading) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-center py-20">
-          <Loader2 size={32} className="animate-spin text-gray-400" />
-        </div>
-      </div>
-    );
+    return <OrderDetailSkeleton />;
   }
 
   if (!order) {
@@ -166,6 +162,7 @@ export default function AdminOrderDetailPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 overflow-x-hidden">
+      <AdminBreadcrumbs items={[{ label: 'Orders', href: '/admin/orders' }, { label: `Order #${shortId}` }]} />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
