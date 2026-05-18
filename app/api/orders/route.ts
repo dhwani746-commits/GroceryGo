@@ -23,7 +23,16 @@ const CreateOrderSchema = z.object({
   }),
   promoCode: z.string().optional(),
   idempotencyKey: z.string().uuid('Idempotency key must be a valid UUID'),
-});
+  /** Payment method chosen by the customer */
+  paymentMethod: z.enum(['razorpay', 'cod']),
+  /** Razorpay payment_id — required when paymentMethod is 'razorpay' */
+  paymentId: z.string().optional(),
+  /** Razorpay order_id — required when paymentMethod is 'razorpay' */
+  rzpOrderId: z.string().optional(),
+}).refine(
+  (data) => data.paymentMethod === 'cod' || (!!data.paymentId && !!data.rzpOrderId),
+  { message: 'paymentId and rzpOrderId are required for Razorpay payments', path: ['paymentId'] },
+);
 
 export async function GET() {
   const supabase = await createClient();

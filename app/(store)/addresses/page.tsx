@@ -68,6 +68,7 @@ export default function AddressesPage() {
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [settingDefaultId, setSettingDefaultId] = useState<string | null>(null);
   const [formError, setFormError] = useState('');
   const [pincodeLookupLoading, setPincodeLookupLoading] = useState(false);
   const [pincodeLookupError, setPincodeLookupError] = useState('');
@@ -294,6 +295,50 @@ export default function AddressesPage() {
 
   const handleDelete = async (id: string) => {
     handleDeleteClick(id);
+  };
+
+  /** Sets an address as the default. Clears the old default optimistically. */
+  const handleSetDefault = async (id: string) => {
+    setSettingDefaultId(id);
+    try {
+      const res = await fetch(`/api/addresses/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        // We only need to flip is_default — the server clears others.
+        // But PUT requires all required fields, so fetch current data first.
+        body: JSON.stringify(
+          (() => {
+            const a = addresses.find((x) => x.id === id);
+            if (!a) return { is_default: true };
+            return {
+              address_line1: a.address_line1,
+              address_line2: a.address_line2 ?? null,
+              label:         a.label,
+              city:          a.city,
+              state:         a.state ?? null,
+              postal_code:   a.postal_code,
+              country:       a.country,
+              phone:         a.phone ?? null,
+              is_default:    true,
+            };
+          })()
+        ),
+      });
+      if (res.ok) {
+        // Update local state: clear old default, mark new one
+        setAddresses((prev) =>
+          prev.map((a) => ({ ...a, is_default: a.id === id }))
+        );
+        toast.success('Default address updated');
+      } else {
+        const json = await res.json();
+        toast.error(json.error ?? 'Failed to set default address');
+      }
+    } catch {
+      toast.error('Network error');
+    } finally {
+      setSettingDefaultId(null);
+    }
   };
 
   if (authLoading) {
@@ -630,6 +675,21 @@ export default function AddressesPage() {
                   </div>
 
                   <div className="flex items-center gap-1 flex-shrink-0">
+                    {!a.is_default && (
+                      <button
+                        onClick={() => handleSetDefault(a.id)}
+                        disabled={settingDefaultId === a.id}
+                        className="flex items-center gap-1 px-2 py-1.5 text-xs font-medium text-neutral-500 hover:text-brand-primary-600 hover:bg-brand-primary-50 rounded-lg transition disabled:opacity-50"
+                        title="Set as default address"
+                      >
+                        {settingDefaultId === a.id ? (
+                          <Loader2 size={13} className="animate-spin" />
+                        ) : (
+                          <Star size={13} />
+                        )}
+                        <span className="hidden sm:inline">Set default</span>
+                      </button>
+                    )}
                     <button
                       onClick={() => openEditForm(a)}
                       className="p-2 text-neutral-400 hover:text-brand-primary-600 hover:bg-brand-primary-50 rounded-lg transition"

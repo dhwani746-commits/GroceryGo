@@ -21,6 +21,9 @@ interface CreateOrderInput {
   };
   promoCode?: string;
   idempotencyKey: string;
+  paymentMethod: 'razorpay' | 'cod';
+  paymentId?: string;
+  rzpOrderId?: string;
 }
 
 export class OrderService {
@@ -144,6 +147,9 @@ export class OrderService {
       totalAmount,
       promoCodeId,
       idempotencyKey: input.idempotencyKey,
+      paymentMethod:  input.paymentMethod,
+      paymentId:      input.paymentId,
+      rzpOrderId:     input.rzpOrderId,
     });
 
     // 5. Record promo code usage (non-blocking; failure doesn't abort order)

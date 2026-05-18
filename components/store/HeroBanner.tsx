@@ -96,20 +96,6 @@ export function HeroBanner() {
                       })}
                     </div>
                   </div>
-
-                  {/* Navigation Buttons */}
-                  <button
-                    onClick={prevSlide}
-                    className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 w-6 h-6 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-all duration-200 shadow-lg ml-2"
-                  >
-                    <ChevronLeft size={14} />
-                  </button>
-                  <button
-                    onClick={nextSlide}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 w-6 h-6 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-all duration-200 shadow-lg mr-2"
-                  >
-                    <ChevronRight size={14} />
-                  </button>
                 </div>
               </div>
 

@@ -82,6 +82,15 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     return NextResponse.json({ error: 'Phone must be 10 digits' }, { status: 400 });
   }
 
+  // Enforce single-default: clear other defaults before setting this one
+  if (payload.is_default) {
+    await supabase
+      .from('addresses')
+      .update({ is_default: false })
+      .eq('user_id', user.id)
+      .neq('id', id);
+  }
+
   const { data, error } = await supabase
     .from('addresses')
     .update(payload)

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -19,24 +19,13 @@ import {
   Mail,
   Clock,
   IndianRupee,
+  Pencil,
 } from 'lucide-react';
 import { AdminBreadcrumbs } from '@/components/admin/AdminBreadcrumbs';
 import { PromoDetailSkeleton } from '@/components/admin/SkeletonLoading';
 import { toast } from 'sonner';
+import { EditPromoModal, type PromoCode } from '@/components/admin/EditPromoModal';
 
-interface PromoCode {
-  id: string;
-  code: string;
-  discount_type: 'percentage' | 'flat';
-  discount_value: number;
-  expires_at: string | null;
-  usage_limit: number | null;
-  times_used: number;
-  one_per_user: boolean;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
 
 interface UsageHistory {
   id: string;
@@ -67,6 +56,7 @@ export default function PromoDetailPage() {
   const [data, setData] = useState<PromoDetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   useEffect(() => {
     fetchPromoDetails();
@@ -183,13 +173,23 @@ export default function PromoDetailPage() {
             })}
           </p>
         </div>
-        <Link
-          href="/admin/promos"
-          className="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
-        >
-          <ArrowLeft size={16} />
-          Back to List
-        </Link>
+        {/* Action buttons */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsEditOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-brand-primary-600 text-white text-sm font-medium rounded-lg hover:bg-brand-primary-700 transition"
+          >
+            <Pencil size={15} />
+            Edit Promo
+          </button>
+          <Link
+            href="/admin/promos"
+            className="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition text-sm"
+          >
+            <ArrowLeft size={15} />
+            Back to List
+          </Link>
+        </div>
       </div>
 
       {/* Promo Details Grid */}
@@ -383,6 +383,18 @@ export default function PromoDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Edit modal */}
+      {isEditOpen && (
+        <EditPromoModal
+          promo={promo}
+          onClose={() => setIsEditOpen(false)}
+          onSaved={(updated) => {
+            setData((prev) => prev ? { ...prev, promo: updated } : prev);
+            setIsEditOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }
