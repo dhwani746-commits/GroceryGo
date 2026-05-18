@@ -107,27 +107,33 @@ export function ProductCard({ product }: { product: Product }) {
             )}
           </div>
 
-          {inStock && (
-            <div onClick={(e) => e.preventDefault()} className="mt-auto">
-              {isInCart ? (
-                <button
-                  disabled
-                  className="w-full rounded-md font-medium h-9 sm:h-10 flex items-center justify-center gap-1.5 text-xs sm:text-sm border border-black bg-status-success-700 text-white cursor-not-allowed"
-                >
-                  <CheckCircle2 size={14} strokeWidth={1.5} />
-                  In Cart
-                </button>
-              ) : (
-                <button
-                  onClick={handleAddToCart}
-                  className="w-full rounded-md font-medium h-9 sm:h-10 flex items-center justify-center gap-1.5 text-xs sm:text-sm border border-black bg-brand-primary-700 text-white hover:bg-brand-primary-600 transition-colors"
-                >
-                  Add to Cart
-                  <ShoppingCart size={14} strokeWidth={1.5} />
-                </button>
-              )}
-            </div>
-          )}
+          <div onClick={(e) => e.preventDefault()} className="mt-auto">
+            {!inStock ? (
+              <button
+                disabled
+                className="w-full rounded-md font-medium h-9 sm:h-10 flex items-center justify-center gap-1.5 text-xs sm:text-sm bg-neutral-100 text-neutral-400 border border-neutral-200 cursor-not-allowed"
+              >
+                <CircleSlash size={14} strokeWidth={1.5} />
+                Out of Stock
+              </button>
+            ) : isInCart ? (
+              <button
+                disabled
+                className="w-full rounded-md font-medium h-9 sm:h-10 flex items-center justify-center gap-1.5 text-xs sm:text-sm border border-black bg-status-success-700 text-white cursor-not-allowed"
+              >
+                <CheckCircle2 size={14} strokeWidth={1.5} />
+                In Cart
+              </button>
+            ) : (
+              <button
+                onClick={handleAddToCart}
+                className="w-full rounded-md font-medium h-9 sm:h-10 flex items-center justify-center gap-1.5 text-xs sm:text-sm border border-black bg-brand-primary-700 text-white hover:bg-brand-primary-600 transition-colors"
+              >
+                Add to Cart
+                <ShoppingCart size={14} strokeWidth={1.5} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </Link>

@@ -21,19 +21,8 @@ import {
 import { PromoCardSkeleton } from '@/components/admin/SkeletonLoading';
 import { AdminBreadcrumbs } from '@/components/admin/AdminBreadcrumbs';
 import { toast } from 'sonner';
+import { EditPromoModal, type PromoCode } from '@/components/admin/EditPromoModal';
 
-interface PromoCode {
-  id: string;
-  code: string;
-  discount_type: 'percentage' | 'flat';
-  discount_value: number;
-  expires_at: string | null;
-  usage_limit: number | null;
-  times_used: number;
-  one_per_user: boolean;
-  is_active: boolean;
-  created_at: string;
-}
 
 const EMPTY_FORM = {
   code: '',
@@ -50,10 +39,11 @@ export default function AdminPromosPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
-  const [editingPromoId, setEditingPromoId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  // Modal-based edit state (shared EditPromoModal)
+  const [editingPromo, setEditingPromo] = useState<PromoCode | null>(null);
 
   const fetchPromos = useCallback(async () => {
     setLoading(true);
@@ -73,24 +63,13 @@ export default function AdminPromosPage() {
 
   const resetFormState = () => {
     setShowForm(false);
-    setEditingPromoId(null);
     setForm(EMPTY_FORM);
     setFormError('');
   };
 
+  /** Opens the shared EditPromoModal for the given promo */
   const startEditingPromo = (promo: PromoCode) => {
-    setForm({
-      code: promo.code,
-      discount_type: promo.discount_type,
-      discount_value: String(promo.discount_value),
-      expires_at: promo.expires_at ? new Date(promo.expires_at).toISOString().slice(0, 16) : '',
-      usage_limit: promo.usage_limit === null ? '' : String(promo.usage_limit),
-      one_per_user: promo.one_per_user,
-      is_active: promo.is_active,
-    });
-    setEditingPromoId(promo.id);
-    setFormError('');
-    setShowForm(true);
+    setEditingPromo(promo);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -114,19 +93,17 @@ export default function AdminPromosPage() {
 
     setSubmitting(true);
     try {
-      const isEditing = editingPromoId !== null;
-      const endpoint = isEditing ? `/api/admin/promos/${editingPromoId}` : '/api/admin/promos';
-      const res = await fetch(endpoint, {
-        method: isEditing ? 'PATCH' : 'POST',
+      const res = await fetch('/api/admin/promos', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
       const json = await res.json();
       if (!res.ok) {
-        setFormError(json.error ?? `Failed to ${isEditing ? 'update' : 'create'} promo`);
+        setFormError(json.error ?? 'Failed to create promo');
         return;
       }
-      toast.success(`Promo code ${isEditing ? 'updated' : 'created'}`);
+      toast.success('Promo code created');
       resetFormState();
       fetchPromos();
     } catch {
@@ -203,12 +180,10 @@ export default function AdminPromosPage() {
         </div>
       </div>
 
-      {/* Create Form */}
+      {/* Create Form (create-only; editing uses the modal) */}
       {showForm && (
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
-          <h2 className="font-semibold text-gray-900 mb-4">
-            {editingPromoId ? 'Edit Promo Code' : 'Create Promo Code'}
-          </h2>
+          <h2 className="font-semibold text-gray-900 mb-4">Create Promo Code</h2>
           <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -308,7 +283,7 @@ export default function AdminPromosPage() {
                 className="flex items-center gap-2 px-5 py-2.5 bg-brand-primary-600 text-white rounded-lg text-sm font-medium hover:bg-brand-primary-700 disabled:opacity-60 transition"
               >
                 {submitting ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
-                {editingPromoId ? 'Update Promo' : 'Create Promo'}
+                Create Promo
               </button>
               <button
                 type="button"
@@ -457,6 +432,20 @@ export default function AdminPromosPage() {
           </>
         )}
       </div>
+
+      {/* Edit modal (shared component) */}
+      {editingPromo && (
+        <EditPromoModal
+          promo={editingPromo}
+          onClose={() => setEditingPromo(null)}
+          onSaved={(updated) => {
+            setPromos((prev) =>
+              prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p))
+            );
+            setEditingPromo(null);
+          }}
+        />
+      )}
     </div>
   );
 }

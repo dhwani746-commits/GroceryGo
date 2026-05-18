@@ -55,6 +55,12 @@ export interface CreateOrderInput {
   totalAmount: number;
   promoCodeId?: string;
   idempotencyKey: string;
+  /** 'razorpay' orders are auto-confirmed; 'cod' orders start as pending */
+  paymentMethod: 'razorpay' | 'cod';
+  /** Razorpay payment_id — set only when paymentMethod === 'razorpay' */
+  paymentId?: string;
+  /** Razorpay order_id — set only when paymentMethod === 'razorpay' */
+  rzpOrderId?: string;
 }
 
 export class OrderRepository {
@@ -153,17 +159,21 @@ export class OrderRepository {
     }
 
     // Insert order header
+    // Razorpay-paid orders are immediately confirmed (signature already verified).
+    // COD orders start as 'pending' and are confirmed when admin dispatches.
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
-        customer_id: input.customerId,
-        status: 'pending',
-        subtotal: input.subtotal,
-        discount_amount: input.discountAmount,
-        total_amount: input.totalAmount,
-        promo_code_id: input.promoCodeId ?? null,
-        delivery_address: input.deliveryAddress,
-        idempotency_key: input.idempotencyKey,
+        customer_id:         input.customerId,
+        status:              input.paymentMethod === 'razorpay' ? 'confirmed' : 'pending',
+        subtotal:            input.subtotal,
+        discount_amount:     input.discountAmount,
+        total_amount:        input.totalAmount,
+        promo_code_id:       input.promoCodeId ?? null,
+        delivery_address:    input.deliveryAddress,
+        idempotency_key:     input.idempotencyKey,
+        razorpay_payment_id: input.paymentId    ?? null,
+        razorpay_order_id:   input.rzpOrderId   ?? null,
       })
       .select('id')
       .single();

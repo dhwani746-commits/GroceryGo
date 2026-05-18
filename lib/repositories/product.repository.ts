@@ -1,4 +1,5 @@
 import { createClient as createServerClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { Product } from '@/lib/store/products';
 
 export interface PaginatedProducts {
@@ -19,17 +20,27 @@ export interface ProductFilters {
 const SELECT_COLS = 'id, name, slug, price, original_price, discount_percentage, description, image_urls, stock_quantity, category';
 
 export class ProductRepository {
+  /**
+   * Fetch a single product by slug for the public detail page.
+   *
+   * Uses the service-role client (bypasses RLS) so that out-of-stock products
+   * and admin-hidden products are still accessible on their detail page —
+   * the page itself renders the stock/visibility state correctly.
+   * The only case that returns null is a hard-deleted product (deleted_at IS NOT NULL).
+   */
   static async getProductBySlug(slug: string): Promise<Product | null> {
-    const supabase = await createServerClient();
+    // Service-role client bypasses the "is_visible = true" RLS policy so that
+    // hidden/OOS products still resolve to a detail page instead of a 404.
+    const supabase = createAdminClient();
     const { data, error } = await supabase
       .from('products')
       .select(SELECT_COLS)
       .eq('slug', slug)
-      .is('deleted_at', null)
+      .is('deleted_at', null)   // hard-deleted products are truly gone
       .single();
 
     if (error) {
-      if (error.code === 'PGRST116') return null;
+      if (error.code === 'PGRST116') return null; // no row found
       throw error;
     }
     return data;

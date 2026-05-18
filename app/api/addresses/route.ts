@@ -81,6 +81,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Failed to validate pincode' }, { status: 500 });
   }
 
+  // Enforce single-default: clear other defaults before creating this one
+  if (!!is_default) {
+    await supabase
+      .from('addresses')
+      .update({ is_default: false })
+      .eq('user_id', user.id);
+  }
+
   const { data, error } = await supabase.from('addresses').insert([
     {
       user_id: user.id,

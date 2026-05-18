@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Script from 'next/script';
 import { useCart } from '@/lib/store/cart';
 import { formatCurrency } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
@@ -63,6 +64,7 @@ interface SavedAddress {
   post_office: string | null;
   postal_code: string;
   phone: string | null;
+  is_default: boolean;
 }
 
 export default function CheckoutPage() {
@@ -85,6 +87,7 @@ export default function CheckoutPage() {
   const [orderPlacementError, setOrderPlacementError] = useState('');
   const [formError, setFormError] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'cod'>('razorpay');
   const isSavedAddressLocked = Boolean(selectedAddressId);
   const isAddressLocked = isSavedAddressLocked || pincodeLookupLoading;
 
@@ -117,8 +120,16 @@ export default function CheckoutPage() {
         const json = await res.json();
         return (json.addresses ?? []) as SavedAddress[];
       })
-      .then((addresses) => setSavedAddresses(addresses))
+      .then((addresses) => {
+        setSavedAddresses(addresses);
+        // Auto-select the default address if one exists
+        const defaultAddr = addresses.find((a) => a.is_default);
+        if (defaultAddr) {
+          handleSavedAddressSelect(defaultAddr.id, addresses);
+        }
+      })
       .catch(() => setSavedAddresses([]));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
 
   const subtotal = getTotalPrice(); // prices in rupees (NUMERIC from DB)
@@ -151,7 +162,7 @@ export default function CheckoutPage() {
       if (name === 'phone') {
         // Allow only digits, max 10 characters, must start with 6-9
         let phoneValue = value.replace(/[^0-9]/g, '').slice(0, 10);
-        
+
         // Only allow if first digit is 6-9 or empty
         if (phoneValue === '' || /^[6-9]/.test(phoneValue)) {
           setAddress((prev) => ({ ...prev, [name]: phoneValue }));
@@ -204,10 +215,18 @@ export default function CheckoutPage() {
     }
   }, [address.pincode]);
 
-  const handleSavedAddressSelect = (addressId: string) => {
+  /**
+   * Selects a saved address and fills the form.
+   * Accepts an optional `list` param so it can be called before `savedAddresses`
+   * state has settled (e.g. during the initial fetch).
+   */
+  const handleSavedAddressSelect = (
+    addressId: string,
+    list: SavedAddress[] = savedAddresses,
+  ) => {
     setSelectedAddressId(addressId);
     setPincodeLookupError('');
-    const selected = savedAddresses.find((entry) => entry.id === addressId);
+    const selected = list.find((entry) => entry.id === addressId);
     if (!selected) {
       setIsPincodeValidated(false);
       return;
@@ -234,37 +253,72 @@ export default function CheckoutPage() {
     setPromoError('');
 
     try {
-      const { data: promoData, error } = await supabase
-        .from('promo_codes')
-        .select('id, code, discount_type, discount_value, expires_at, usage_limit, times_used, is_active')
-        .eq('code', code)
-        .single();
-
-      if (error || !promoData || !promoData.is_active) {
-        setPromoError('Invalid or inactive promo code');
-        return;
-      }
-      if ((promoData.expires_at && new Date(promoData.expires_at) < new Date()) || (promoData.usage_limit !== null && promoData.times_used >= promoData.usage_limit)) {
-        setPromoError('Invalid or Inactive promo code');
-        return;
-      }
-
-      let discountAmt = 0;
-      if (promoData.discount_type === 'percentage') {
-        discountAmt = Math.round((subtotal * Number(promoData.discount_value)) / 100 * 100) / 100;
-      } else {
-        discountAmt = Math.min(Number(promoData.discount_value), subtotal);
-      }
-
-      setPromo({
-        code: promoData.code,
-        discountType: promoData.discount_type as 'percentage' | 'flat',
-        discountValue: Number(promoData.discount_value),
-        discountAmount: discountAmt,
+      // Delegate all validation (including one_per_user) to the server route
+      // so errors surface immediately when the user clicks "Apply".
+      const res = await fetch('/api/promos/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, cart_total: subtotal }),
       });
+      const json = await res.json();
+
+      if (!res.ok || !json.success) {
+        setPromoError(json.error ?? 'Invalid promo code');
+        return;
+      }
+
+      const d = json.data;
+      setPromo({
+        code: d.code,
+        discountType: d.discount_type as 'percentage' | 'flat',
+        discountValue: d.discount_value,
+        discountAmount: d.discount_amount,
+      });
+    } catch {
+      setPromoError('Network error. Please try again.');
     } finally {
       setPromoLoading(false);
     }
+  };
+
+
+  // ─── Shared address payload builder ────────────────────────────────────────
+  const buildOrderPayload = (extra: Record<string, unknown> = {}) => ({
+    items: items.map((i) => ({ productId: i.id, quantity: i.quantity })),
+    deliveryAddress: {
+      name: address.name.trim(),
+      phone: address.phone.trim(),
+      line1: address.line1.trim(),
+      line2: address.line2.trim() || undefined,
+      city: address.city.trim(),
+      state: address.state.trim(),
+      pincode: address.pincode.trim(),
+    },
+    promoCode: promo?.code,
+    idempotencyKey: crypto.randomUUID(),
+    paymentMethod,
+    ...extra,
+  });
+
+  // ─── Fire-and-forget address save ───────────────────────────────────────────
+  const saveAddress = () => {
+    fetch('/api/addresses', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        full_name: address.name.trim(),
+        nickname: savedAddresses.find((a) => a.id === selectedAddressId)?.nickname ?? 'Checkout',
+        address_line1: address.line1.trim(),
+        address_line2: address.line2.trim() || null,
+        landmark: address.landmark.trim() || null,
+        city: address.city.trim(),
+        state: address.state.trim(),
+        post_office: address.postOffice.trim(),
+        postal_code: address.pincode.trim(),
+        country: 'India',
+        phone: address.phone.trim(),
+      }),
+    }).catch((err) => console.warn('Address save failed (non-critical):', err));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -276,11 +330,11 @@ export default function CheckoutPage() {
       return;
     }
 
-    // Basic client-side validation (server validates authoritatively)
+    // Client-side guard — server validates authoritatively
     const required: Array<keyof AddressForm> = ['name', 'phone', 'line1', 'city', 'state', 'pincode'];
     for (const field of required) {
       if (!address[field].trim()) {
-        setFormError(`Please fill in all required fields`);
+        setFormError('Please fill in all required fields');
         return;
       }
     }
@@ -300,66 +354,132 @@ export default function CheckoutPage() {
     setOrderPlacementState('placing');
     setOrderPlacementError('');
 
+    // ── COD path ─────────────────────────────────────────────────────────────
+    if (paymentMethod === 'cod') {
+      try {
+        const res = await fetch('/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(buildOrderPayload()),
+        });
+        const json = await res.json();
+        if (!res.ok) {
+          setOrderPlacementState('failed');
+          setOrderPlacementError(json.error ?? 'Failed to place order. Please try again.');
+          return;
+        }
+        saveAddress();
+        clearCart();
+        router.push(`/orders/${json.data.id}?success=1`);
+      } catch {
+        setOrderPlacementState('failed');
+        setOrderPlacementError('Network error. Please check your connection and try again.');
+      }
+      return;
+    }
+
+    // ── Razorpay path ─────────────────────────────────────────────────────────
     try {
-      // Generate a client-side idempotency key (UUID v4 via crypto API)
-      const idempotencyKey = crypto.randomUUID();
-
-      const payload = {
-        items: items.map((i) => ({ productId: i.id, quantity: i.quantity })),
-        deliveryAddress: {
-          name: address.name.trim(),
-          phone: address.phone.trim(),
-          line1: address.line1.trim(),
-          line2: address.line2.trim() || undefined,
-          city: address.city.trim(),
-          state: address.state.trim(),
-          pincode: address.pincode.trim(),
-        },
-        promoCode: promo?.code,
-        idempotencyKey,
-      };
-
-      const res = await fetch('/api/orders', {
+      // Step 1: Create Razorpay order
+      const totalInPaise = Math.round((subtotal - (promo?.discountAmount ?? 0)) * 100);
+      const rzpOrderRes = await fetch('/api/razorpay/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ amountInPaise: totalInPaise }),
       });
+      const rzpOrderJson = await rzpOrderRes.json();
 
-      const json = await res.json();
-
-      if (!res.ok) {
+      if (!rzpOrderRes.ok || !rzpOrderJson.success) {
         setOrderPlacementState('failed');
-        setOrderPlacementError(json.error ?? 'Failed to place order. Please try again.');
+        setOrderPlacementError(rzpOrderJson.error ?? 'Could not initiate payment. Please try again.');
         return;
       }
 
-      // Save delivery address to the user's address book (fire-and-forget).
-      // Non-blocking: a failure here doesn't abort the order flow — the address
-      // snapshot is already persisted inside the order record itself.
-      fetch('/api/addresses', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          full_name: address.name.trim(),
-          nickname:
-            savedAddresses.find((entry) => entry.id === selectedAddressId)?.nickname ?? 'Checkout',
-          address_line1: address.line1.trim(),
-          address_line2: address.line2.trim() || null,
-          landmark: address.landmark.trim() || null,
-          city: address.city.trim(),
-          state: address.state.trim(),
-          post_office: address.postOffice.trim(),
-          postal_code: address.pincode.trim(),
-          country: 'India',
-          phone: address.phone.trim(),
-        }),
-      }).catch((err) => console.warn('Address save failed (non-critical):', err));
+      const { orderId: rzpOrderId, amount, currency, keyId } = rzpOrderJson;
 
-      clearCart();
-      router.push(`/orders/${json.data.id}?success=1`);
-    } catch {
-      setOrderPlacementState('failed');
-      setOrderPlacementError('Network error. Please check your connection and try again.');
+      // Step 2: Open Razorpay Checkout modal
+      await new Promise<void>((resolve, reject) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const Rzp = (window as any).Razorpay;
+        if (!Rzp) {
+          reject(new Error('Razorpay script not loaded'));
+          return;
+        }
+
+        const options = {
+          key: keyId,
+          amount,
+          currency,
+          name: 'Krishna Plastics',
+          description: `Order of ${items.length} item${items.length > 1 ? 's' : ''}`,
+          order_id: rzpOrderId,
+          prefill: {
+            name: address.name.trim(),
+            contact: `+91${address.phone.trim()}`,
+          },
+          theme: { color: '#2563eb' },
+          modal: {
+            confirm_close: true,
+            ondismiss: () => {
+              setOrderPlacementState('failed');
+              setOrderPlacementError('Payment was cancelled. You can try again.');
+              reject(new Error('dismissed'));
+            },
+          },
+          handler: async (response: {
+            razorpay_payment_id: string;
+            razorpay_order_id: string;
+            razorpay_signature: string;
+          }) => {
+            try {
+              // Step 3: Verify HMAC signature
+              const verifyRes = await fetch('/api/razorpay/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(response),
+              });
+              const verifyJson = await verifyRes.json();
+
+              if (!verifyRes.ok || !verifyJson.success) {
+                reject(new Error(verifyJson.error ?? 'Payment verification failed'));
+                return;
+              }
+
+              // Step 4: Create DB order (status → 'confirmed' set server-side)
+              const orderRes = await fetch('/api/orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(buildOrderPayload({
+                  paymentId: verifyJson.paymentId,
+                  rzpOrderId: verifyJson.rzpOrderId,
+                })),
+              });
+              const orderJson = await orderRes.json();
+
+              if (!orderRes.ok) {
+                reject(new Error(orderJson.error ?? 'Failed to save order'));
+                return;
+              }
+
+              saveAddress();
+              clearCart();
+              resolve();
+              router.push(`/orders/${orderJson.data.id}?success=1`);
+            } catch (err) {
+              reject(err);
+            }
+          },
+        };
+
+        const rzp = new Rzp(options);
+        rzp.open();
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Something went wrong';
+      if (msg !== 'dismissed') {
+        setOrderPlacementState('failed');
+        setOrderPlacementError(msg || 'Payment failed. Please try again.');
+      }
     }
   };
 
@@ -384,12 +504,12 @@ export default function CheckoutPage() {
             <Loader2 className="mx-auto animate-spin text-brand-primary-600 mb-4" size={40} />
           )}
           <h1 className="text-xl font-bold text-neutral-900 mb-2">
-            {isFailed ? 'Order placement failed' : 'Placing your order'}
+            {isFailed ? 'Payment failed' : 'Processing payment…'}
           </h1>
           <p className="text-sm text-neutral-600 mb-6">
             {isFailed
-              ? orderPlacementError || 'Something went wrong while placing your order.'
-              : 'Please wait while we confirm your order details.'}
+              ? orderPlacementError || 'Something went wrong. Please try again.'
+              : 'Please do not close this page while we confirm your payment.'}
           </p>
           {isFailed && (
             <div className="flex items-center justify-center gap-3">
@@ -429,6 +549,8 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-neutral-50">
+      {/* Razorpay Standard Checkout script — loaded lazily so it doesn't block page paint */}
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       <Header hideSearch />
       <div className="max-w-6xl mx-auto px-4 py-8 mt-20">
         {/* Breadcrumb */}
@@ -461,10 +583,10 @@ export default function CheckoutPage() {
                     onChange={(e) => handleSavedAddressSelect(e.target.value)}
                     className="w-full border border-neutral-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-500 focus:border-transparent bg-white"
                   >
-                    <option value="">Select label</option>
+                    <option value="">Select address</option>
                     {savedAddresses.map((saved) => (
                       <option key={saved.id} value={saved.id}>
-                        {saved.nickname || 'Address'} - {saved.address_line1}
+                        {saved.is_default ? '★ ' : ''}{saved.nickname || 'Address'} — {saved.address_line1}{saved.is_default ? ' (Default)' : ''}
                       </option>
                     ))}
                   </select>
@@ -665,7 +787,7 @@ export default function CheckoutPage() {
               )}
 
               {promoError && (
-                <p className="mt-2 text-sm text-status-danger-600 flex items-center gap-1">
+                <p className="mt-2 text-sm text-status-danger-600 text-red-500 flex items-center gap-1">
                   <AlertCircle size={14} /> {promoError}
                 </p>
               )}
@@ -729,18 +851,77 @@ export default function CheckoutPage() {
                 </div>
               )}
 
+              {/* Payment method selector */}
+              <div className="mt-5 space-y-2">
+                <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">
+                  Payment Method
+                </p>
+
+                {/* Razorpay option */}
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('razorpay')}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition text-left ${paymentMethod === 'razorpay'
+                    ? 'border-brand-primary-500 bg-brand-primary-50'
+                    : 'border-neutral-200 bg-white hover:border-neutral-300'
+                    }`}
+                >
+                  <span className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${paymentMethod === 'razorpay' ? 'border-brand-primary-600' : 'border-neutral-300'
+                    }`}>
+                    {paymentMethod === 'razorpay' && (
+                      <span className="w-2 h-2 rounded-full bg-brand-primary-600" />
+                    )}
+                  </span>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-neutral-900">Pay Online</p>
+                    <p className="text-xs text-neutral-500">UPI, Cards, Net Banking via Razorpay</p>
+                  </div>
+                  {/* Razorpay logo badge */}
+                  <span className="text-[10px] font-bold text-white bg-[#072654] px-2 py-0.5 rounded flex-shrink-0">
+                    Razorpay
+                  </span>
+                </button>
+
+                {/* COD option */}
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('cod')}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition text-left ${paymentMethod === 'cod'
+                    ? 'border-brand-primary-500 bg-brand-primary-50'
+                    : 'border-neutral-200 bg-white hover:border-neutral-300'
+                    }`}
+                >
+                  <span className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${paymentMethod === 'cod' ? 'border-brand-primary-600' : 'border-neutral-300'
+                    }`}>
+                    {paymentMethod === 'cod' && (
+                      <span className="w-2 h-2 rounded-full bg-brand-primary-600" />
+                    )}
+                  </span>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-neutral-900">Cash on Delivery</p>
+                    <p className="text-xs text-neutral-500">Pay with cash when your order arrives</p>
+                  </div>
+                  <span className="text-[10px] font-bold text-neutral-600 bg-neutral-100 px-2 py-0.5 rounded flex-shrink-0">
+                    COD
+                  </span>
+                </button>
+              </div>
+
               <button
                 type="submit"
-                className="w-full mt-5 bg-brand-primary-600 hover:bg-brand-primary-700 text-white font-semibold py-3.5 rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-60"
+                className="w-full mt-4 bg-brand-primary-600 hover:bg-brand-primary-700 text-white font-semibold py-3.5 rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-60"
               >
-                <>
-                  Place Order
-                  <ChevronRight size={18} />
-                </>
+                {paymentMethod === 'razorpay' ? (
+                  <>Pay &amp; Confirm Order <ChevronRight size={18} /></>
+                ) : (
+                  <>Place COD Order <ChevronRight size={18} /></>
+                )}
               </button>
 
               <p className="text-xs text-neutral-400 text-center mt-3">
-                Payment will be collected after delivery (COD) or via Razorpay.
+                {paymentMethod === 'razorpay'
+                  ? 'You will be taken to Razorpay\'s secure payment page.'
+                  : 'No payment needed now. Pay cash on delivery.'}
               </p>
             </div>
           </div>
