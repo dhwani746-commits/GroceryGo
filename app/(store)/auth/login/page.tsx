@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+export const dynamic = 'force-dynamic';
+
+import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AuthModal } from '@/components/shared/AuthModal';
 
@@ -9,7 +11,7 @@ import { AuthModal } from '@/components/shared/AuthModal';
  * When the modal closes (either via the X button or successful auth), we go back.
  * Also handles ?error= messages forwarded from the OAuth callback.
  */
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const defaultTab = (searchParams.get('tab') as 'login' | 'register') ?? 'login';
@@ -26,17 +28,19 @@ export default function LoginPage() {
     }
   };
 
-  // If the modal was closed via any internal success, also navigate back
-  const handleSuccess = () => {
-    setIsOpen(false);
-    router.back();
-  };
-
   return (
     <AuthModal
       isOpen={isOpen}
       onClose={handleClose}
       defaultTab={defaultTab}
     />
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginContent />
+    </Suspense>
   );
 }
