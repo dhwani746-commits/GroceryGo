@@ -12,6 +12,7 @@ import {
   Clock,
   Home,
   ShoppingBag,
+  FileText,
 } from 'lucide-react';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
@@ -207,6 +208,18 @@ export default async function OrderDetailPage({
                   <span>Total</span>
                   <span>{formatCurrency(order.total_amount)}</span>
                 </div>
+                {order.status === 'delivered' && (
+                  <div className="pt-4 border-t border-neutral-100 mt-4">
+                    <Link
+                      href={`/orders/${order.id}/invoice`}
+                      target="_blank"
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-brand-primary-50 hover:bg-brand-primary-100 text-brand-primary-700 border border-brand-primary-200 rounded-xl transition text-sm font-semibold active:scale-95 text-center"
+                    >
+                      <FileText size={16} />
+                      Download Invoice
+                    </Link>
+                  </div>
+                )}
               </div>
             </div>
 

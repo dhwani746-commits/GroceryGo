@@ -31,10 +31,13 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isProtectedRoute = 
-    request.nextUrl.pathname.startsWith('/admin') || 
-    request.nextUrl.pathname.startsWith('/orders');
-  
+  const isApiRoute = request.nextUrl.pathname.startsWith('/api/');
+  const isProtectedRoute =
+    !isApiRoute && (
+      request.nextUrl.pathname.startsWith('/admin') ||
+      request.nextUrl.pathname.startsWith('/orders')
+    );
+
   if (!user && isProtectedRoute) {
     const url = request.nextUrl.clone();
     url.pathname = '/auth/login';

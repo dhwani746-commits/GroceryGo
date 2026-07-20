@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useState, useEffect, useCallback } from 'react';
+import { Fragment, useState, useEffect, useCallback, useRef } from 'react';
 import { formatCurrency } from '@/lib/utils';
 import Link from 'next/link';
 import {
@@ -52,44 +52,159 @@ interface AdminOrder {
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All Statuses' },
-  { value: 'pending',    label: 'Pending' },
-  { value: 'paid',       label: 'Paid' },
-  { value: 'confirmed',  label: 'Confirmed' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'paid', label: 'Paid' },
+  { value: 'confirmed', label: 'Confirmed' },
   { value: 'processing', label: 'Processing' },
-  { value: 'shipped',    label: 'Shipped' },
-  { value: 'delivered',  label: 'Delivered' },
-  { value: 'cancelled',  label: 'Cancelled' },
+  { value: 'shipped', label: 'Shipped' },
+  { value: 'delivered', label: 'Delivered' },
+  { value: 'cancelled', label: 'Cancelled' },
 ];
 
 const STATUS_BADGE: Record<string, string> = {
-  pending:    'bg-status-warning-100 text-status-warning-800 border-status-warning-200',
-  paid:       'bg-status-success-100 text-status-success-800 border-status-success-200',
-  confirmed:  'bg-status-success-100 text-status-success-800 border-status-success-200',
+  pending: 'bg-status-warning-100 text-status-warning-800 border-status-warning-200',
+  paid: 'bg-status-success-100 text-status-success-800 border-status-success-200',
+  confirmed: 'bg-status-success-100 text-status-success-800 border-status-success-200',
   processing: 'bg-blue-100 text-blue-800 border-blue-200',
-  shipped:    'bg-purple-100 text-purple-800 border-purple-200',
-  delivered:  'bg-status-success-100 text-status-success-800 border-status-success-200',
-  cancelled:  'bg-status-danger-100 text-status-danger-800 border-status-danger-200',
+  shipped: 'bg-purple-100 text-purple-800 border-purple-200',
+  delivered: 'bg-status-success-100 text-status-success-800 border-status-success-200',
+  cancelled: 'bg-status-danger-100 text-status-danger-800 border-status-danger-200',
 };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; dot: string }> = {
-  pending:    { label: 'Pending',    color: 'text-yellow-800', bg: 'bg-yellow-100', dot: 'bg-yellow-500' },
-  paid:       { label: 'Paid',       color: 'text-green-800',  bg: 'bg-green-100',  dot: 'bg-green-500' },
-  confirmed:  { label: 'Confirmed',  color: 'text-green-800',  bg: 'bg-green-100',  dot: 'bg-green-500' },
-  processing: { label: 'Processing', color: 'text-blue-800',   bg: 'bg-blue-100',   dot: 'bg-blue-500' },
-  shipped:    { label: 'Shipped',    color: 'text-purple-800', bg: 'bg-purple-100', dot: 'bg-purple-500' },
-  delivered:  { label: 'Delivered',  color: 'text-green-800',  bg: 'bg-green-100',  dot: 'bg-green-500' },
-  cancelled:  { label: 'Cancelled',  color: 'text-red-800',    bg: 'bg-red-100',    dot: 'bg-red-500' },
+  pending: { label: 'Pending', color: 'text-yellow-800', bg: 'bg-yellow-100', dot: 'bg-yellow-500' },
+  paid: { label: 'Paid', color: 'text-green-800', bg: 'bg-green-100', dot: 'bg-green-500' },
+  confirmed: { label: 'Confirmed', color: 'text-green-800', bg: 'bg-green-100', dot: 'bg-green-500' },
+  processing: { label: 'Processing', color: 'text-blue-800', bg: 'bg-blue-100', dot: 'bg-blue-500' },
+  shipped: { label: 'Shipped', color: 'text-purple-800', bg: 'bg-purple-100', dot: 'bg-purple-500' },
+  delivered: { label: 'Delivered', color: 'text-green-800', bg: 'bg-green-100', dot: 'bg-green-500' },
+  cancelled: { label: 'Cancelled', color: 'text-red-800', bg: 'bg-red-100', dot: 'bg-red-500' },
 };
 
 const NEXT_STATUSES: Record<string, string[]> = {
-  pending:    ['confirmed', 'cancelled'],
-  paid:       ['confirmed', 'cancelled'],
-  confirmed:  ['processing', 'cancelled'],
+  pending: ['confirmed', 'cancelled'],
+  paid: ['confirmed', 'cancelled'],
+  confirmed: ['processing', 'cancelled'],
   processing: ['shipped', 'cancelled'],
-  shipped:    ['delivered', 'cancelled'],
-  delivered:  [],
-  cancelled:  [],
+  shipped: ['delivered', 'cancelled'],
+  delivered: [],
+  cancelled: [],
 };
+
+// ── Quick-date preset helpers ───────────────────────────────────────
+function toDateStr(d: Date) {
+  // Returns YYYY-MM-DD in local timezone
+  return d.toLocaleDateString('en-CA'); // en-CA gives ISO format
+}
+
+const DATE_PRESETS = [
+  {
+    label: 'Today',
+    get: () => {
+      const d = toDateStr(new Date());
+      return { from: d, to: d };
+    },
+  },
+  {
+    label: 'This Week',
+    get: () => {
+      const now = new Date();
+      const mon = new Date(now);
+      mon.setDate(now.getDate() - ((now.getDay() + 6) % 7)); // Monday
+      return { from: toDateStr(mon), to: toDateStr(now) };
+    },
+  },
+  {
+    label: 'This Month',
+    get: () => {
+      const now = new Date();
+      const first = new Date(now.getFullYear(), now.getMonth(), 1);
+      return { from: toDateStr(first), to: toDateStr(now) };
+    },
+  },
+] as const;
+// ────────────────────────────────────────────────────────────────────
+
+// ── Quick-status shortcuts ─────────────────────────────────────────────────
+const QUICK_STATUSES = [
+  { value: 'pending', label: 'Pending', dot: 'bg-yellow-400' },
+  { value: 'confirmed', label: 'Confirmed', dot: 'bg-green-500' },
+  { value: 'shipped', label: 'Shipped', dot: 'bg-purple-500' },
+  { value: 'delivered', label: 'Delivered', dot: 'bg-green-600' },
+] as const;
+
+// ── Custom styled status dropdown ─────────────────────────────────────────────
+interface StatusDropdownProps {
+  value: string;
+  onChange: (v: string) => void;
+}
+function StatusDropdown({ value, onChange }: StatusDropdownProps) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    if (open) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const current = STATUS_OPTIONS.find((o) => o.value === value) ?? STATUS_OPTIONS[0];
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className={`flex items-center gap-2 pl-3 pr-2.5 py-2.5 text-sm border rounded-lg bg-white transition whitespace-nowrap ${open ? 'border-brand-primary-400 ring-2 ring-brand-primary-100' : 'border-gray-200 hover:border-gray-300'
+          }`}
+      >
+        {value && STATUS_CONFIG[value] && (
+          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${STATUS_CONFIG[value].dot}`} />
+        )}
+        <span className="font-medium text-gray-700">{current.label}</span>
+        <svg
+          className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}
+          viewBox="0 0 20 20" fill="currentColor"
+        >
+          <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full mt-1 w-44 bg-white border border-gray-200 rounded-xl shadow-lg z-30 py-1 overflow-hidden">
+          {STATUS_OPTIONS.map((opt) => {
+            const cfg = STATUS_CONFIG[opt.value];
+            const isActive = value === opt.value;
+            return (
+              <button
+                key={opt.value}
+                onClick={() => { onChange(opt.value); setOpen(false); }}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm transition ${isActive
+                  ? 'bg-brand-primary-50 text-brand-primary-700 font-semibold'
+                  : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+              >
+                {cfg ? (
+                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${cfg.dot}`} />
+                ) : (
+                  <span className="w-2 h-2 rounded-full flex-shrink-0 bg-gray-300" />
+                )}
+                {opt.label}
+                {isActive && (
+                  <svg className="w-4 h-4 ml-auto text-brand-primary-600" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+                  </svg>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+// ──────────────────────────────────────────────────────────────────────────────
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<AdminOrder[]>([]);
@@ -99,9 +214,25 @@ export default function AdminOrdersPage() {
   const [search, setSearch] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [activePreset, setActivePreset] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const applyPreset = (preset: typeof DATE_PRESETS[number]) => {
+    const { from, to } = preset.get();
+    setDateFrom(from);
+    setDateTo(to);
+    setActivePreset(preset.label);
+    setPage(1);
+  };
+
+  const clearDates = () => {
+    setDateFrom('');
+    setDateTo('');
+    setActivePreset(null);
+    setPage(1);
+  };
 
   const pageSize = 15;
   const totalPages = Math.ceil(total / pageSize);
@@ -154,30 +285,30 @@ export default function AdminOrdersPage() {
   const filtered = orders.filter((o) => {
     // Name/ID search
     if (search.trim()) {
-      const searchMatch = 
+      const searchMatch =
         (o.profiles?.full_name?.toLowerCase() ?? '').includes(search.toLowerCase()) ||
         o.id.toLowerCase().includes(search.toLowerCase());
       if (!searchMatch) return false;
     }
-    
+
     // Date range filter
     if (dateFrom || dateTo) {
       const orderDate = new Date(o.created_at);
       orderDate.setHours(0, 0, 0, 0); // Normalize to start of day
-      
+
       if (dateFrom) {
         const fromDate = new Date(dateFrom);
         fromDate.setHours(0, 0, 0, 0);
         if (orderDate < fromDate) return false;
       }
-      
+
       if (dateTo) {
         const toDate = new Date(dateTo);
         toDate.setHours(23, 59, 59, 999); // End of day
         if (orderDate > toDate) return false;
       }
     }
-    
+
     return true;
   });
 
@@ -206,56 +337,110 @@ export default function AdminOrdersPage() {
 
       {/* Filters */}
       <div className="flex flex-col gap-3 mb-6">
-        {/* Row 1: Search and Status */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1 min-w-0">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        {/* Row 1: Search (narrower) + Status pills + Dropdown */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Narrower search */}
+          <div className="relative w-full sm:w-120">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Search by name or order ID…"
+              placeholder="Name or order ID…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full min-w-0 pl-9 pr-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary-500"
+              className="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary-500"
             />
           </div>
-          <select
+
+          {/* Divider */}
+          <span className="text-gray-300 hidden sm:inline">|</span>
+
+          {/* Quick status pills */}
+          {QUICK_STATUSES.map((s) => {
+            const isActive = statusFilter === s.value;
+            const activeStyles = {
+              pending: 'bg-yellow-50 text-yellow-800 border-yellow-300 ring-1 ring-yellow-100',
+              confirmed: 'bg-green-50 text-green-800 border-green-300 ring-1 ring-green-100',
+              shipped: 'bg-purple-50 text-purple-800 border-purple-300 ring-1 ring-purple-100',
+              delivered: 'bg-emerald-50 text-emerald-800 border-emerald-300 ring-1 ring-emerald-100',
+            }[s.value];
+
+            return (
+              <button
+                key={s.value}
+                onClick={() => { setStatusFilter(statusFilter === s.value ? '' : s.value); setPage(1); }}
+                className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border transition-all duration-200 whitespace-nowrap active:scale-95 ${
+                  isActive
+                    ? `${activeStyles} shadow-sm`
+                    : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-gray-300 shadow-sm hover:shadow'
+                }`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full transition-colors ${s.dot}`} />
+                {s.label}
+              </button>
+            );
+          })}
+
+          {/* Divider */}
+          <span className="text-gray-300 hidden sm:inline">|</span>
+
+          {/* Full status dropdown */}
+          <StatusDropdown
             value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-            className="w-full sm:w-auto px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary-500"
-          >
-            {STATUS_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
+            onChange={(v) => { setStatusFilter(v); setPage(1); }}
+          />
         </div>
-        {/* Row 2: Date Range */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="flex items-center gap-2 flex-1">
-            <Calendar size={16} className="text-gray-400 flex-shrink-0" />
+        {/* Row 2: Date Range + Quick Presets */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Quick preset buttons */}
+          {DATE_PRESETS.map((preset) => {
+            const isActive = activePreset === preset.label;
+            return (
+              <button
+                key={preset.label}
+                onClick={() => applyPreset(preset)}
+                className={`px-3 py-2 text-xs font-semibold rounded-lg border transition-all duration-200 whitespace-nowrap active:scale-95 ${
+                  isActive
+                    ? 'bg-brand-primary-50 text-brand-primary-700 border-brand-primary-200 ring-1 ring-brand-primary-100/50 shadow-sm'
+                    : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-gray-300 shadow-sm hover:shadow'
+                }`}
+              >
+                {preset.label}
+              </button>
+            );
+          })}
+
+          {/* Divider */}
+          <span className="text-gray-300 hidden sm:inline">|</span>
+
+          {/* Date inputs — narrower fixed width */}
+          <div className="flex items-center gap-2">
+            <Calendar size={15} className="text-gray-400 flex-shrink-0" />
             <input
               type="date"
               value={dateFrom}
-              onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
-              className="flex-1 min-w-0 px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary-500"
-              placeholder="From"
+              onChange={(e) => { setDateFrom(e.target.value); setActivePreset(null); setPage(1); }}
+              className="w-32 px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg bg-neutral-50/50 hover:bg-neutral-50 focus:bg-white focus:border-brand-primary-500 focus:ring-4 focus:ring-brand-primary-50 transition-all font-medium text-neutral-700 outline-none shadow-inner/5"
+              title="From date"
             />
-            <span className="text-gray-400 text-sm">to</span>
+            <span className="text-gray-400 text-xs">–</span>
             <input
               type="date"
               value={dateTo}
-              onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
-              className="flex-1 min-w-0 px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary-500"
-              placeholder="To"
+              onChange={(e) => { setDateTo(e.target.value); setActivePreset(null); setPage(1); }}
+              className="w-32 px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg bg-neutral-50/50 hover:bg-neutral-50 focus:bg-white focus:border-brand-primary-500 focus:ring-4 focus:ring-brand-primary-50 transition-all font-medium text-neutral-700 outline-none shadow-inner/5"
+              title="To date"
             />
-            {(dateFrom || dateTo) && (
-              <button
-                onClick={() => { setDateFrom(''); setDateTo(''); setPage(1); }}
-                className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1"
-              >
-                Clear
-              </button>
-            )}
           </div>
+
+          {/* Clear button */}
+          {(dateFrom || dateTo) && (
+            <button
+              onClick={clearDates}
+              className="text-xs text-gray-500 hover:text-red-600 px-2.5 py-1.5 rounded-lg hover:bg-red-50 transition-all active:scale-95 font-medium"
+            >
+              Clear
+            </button>
+          )}
         </div>
       </div>
 

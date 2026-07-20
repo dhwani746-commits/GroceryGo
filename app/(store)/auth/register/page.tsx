@@ -1,15 +1,27 @@
-import { AuthForm } from '@/components/store/AuthForm';
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { AuthModal } from '@/components/shared/AuthModal';
 
 export default function RegisterPage() {
+  const router = useRouter();
+  const [isOpen, setIsOpen] = useState(true);
+
+  const handleClose = () => {
+    setIsOpen(false);
+    if (window.history.length > 1) {
+      router.back();
+    } else {
+      router.push('/');
+    }
+  };
+
   return (
-    <div className="space-y-6 border border-brand-accent-200 p-6 rounded-lg shadow-lg bg-neutral-0 max-w-md mx-auto mt-10">
-      <div>
-        <h1 className="text-2xl font-bold text-brand-accent-700">Create Account</h1>
-        <p className="mt-2 text-sm text-neutral-600">
-          Sign up to start shopping at Krishna Plastics
-        </p>
-      </div>
-      <AuthForm mode="register" />
-    </div>
+    <AuthModal
+      isOpen={isOpen}
+      onClose={handleClose}
+      defaultTab="register"
+    />
   );
 }

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Package, Settings, ShoppingCart, Tag, Users, X, User, LogOut, CreditCard } from 'lucide-react';
+import { useStoreSettings } from '@/lib/hooks/useStoreSettings';
 
 interface AdminSidebarProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ const NAV_LINKS = [
 export function AdminSidebar({ isOpen, onClose, username }: AdminSidebarProps) {
   const [signingOut, setSigningOut] = useState(false);
   const pathname = usePathname();
+  const { storeName } = useStoreSettings();
 
   const handleSignOut = async () => {
     try {
@@ -57,7 +59,7 @@ export function AdminSidebar({ isOpen, onClose, username }: AdminSidebarProps) {
         <nav className="p-4 py-6 md:py-8 space-y-4 w-64 flex flex-col h-full overflow-y-auto">
           {/* Header with Close Button */}
           <div className="flex justify-between items-start pb-4 border-b border-gray-200">
-            <div className="font-bold text-lg text-brand-primary-600">Krishna Plastics Admin
+            <div className="font-bold text-lg text-brand-primary-600 truncate pr-2" title={`${storeName} Admin`}>{storeName} Admin
               <div className="text-sm text-gray-500">MANAGEMENT PORTAL</div>
             </div>
             <button

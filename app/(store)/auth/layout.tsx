@@ -1,18 +1,8 @@
-import { Logo } from '@/components/shared/Logo';
-
-export default function AuthLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4 py-12 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8">
-        <div className="text-center">
-          <Logo />
-        </div>
-        {children}
-      </div>
-    </div>
-  );
+/**
+ * Auth layout — intentionally minimal.
+ * Each page (/auth/login, /auth/register) renders an AuthModal that positions
+ * itself as a fixed overlay, so no centering wrapper is needed here.
+ */
+export default function AuthLayout({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
 }

@@ -3,7 +3,7 @@
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ProductForm } from '@/components/admin/ProductForm';
-import { Breadcrumb } from '@/components/shared/Breadcrumb';
+import { AdminBreadcrumbs } from '@/components/admin/AdminBreadcrumbs';
 import { Package, Pencil, Loader2 } from 'lucide-react';
 
 interface Product {
@@ -78,13 +78,11 @@ export default function EditProductPage() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
-      {/* Breadcrumb */}
-      <Breadcrumb
+      <AdminBreadcrumbs
         items={[
           { label: 'Products', href: '/admin/products' },
           { label: product.name },
         ]}
-        className="mb-6"
       />
 
       {/* Page Header */}

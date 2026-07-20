@@ -16,7 +16,7 @@ export function AdminBreadcrumbs({ items }: AdminBreadcrumbsProps) {
   return (
     <nav className="flex items-center gap-2 text-sm text-gray-600 mb-6">
       <Link
-        href="/admin"
+        href="/admin/dashboard"
         className="flex items-center gap-1 hover:text-brand-primary-600 transition-colors"
       >
         <Home size={16} />

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { formatCurrency } from '@/lib/utils';
 import {
   CreditCard,
@@ -51,7 +51,221 @@ const STATUS_BADGE: Record<string, string> = {
   cancelled:  'bg-red-100     text-red-800     border-red-200',
 };
 
-// ── Copy-to-clipboard button ───────────────────────────────────────────────────
+// ── Quick-date helpers (same pattern as admin/orders) ─────────────────────────
+function toDateStr(d: Date) {
+  return d.toLocaleDateString('en-CA'); // YYYY-MM-DD in local TZ
+}
+
+const DATE_PRESETS = [
+  {
+    label: 'Today',
+    get: () => { const d = toDateStr(new Date()); return { from: d, to: d }; },
+  },
+  {
+    label: 'This Week',
+    get: () => {
+      const now = new Date();
+      const mon = new Date(now);
+      mon.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+      return { from: toDateStr(mon), to: toDateStr(now) };
+    },
+  },
+  {
+    label: 'This Month',
+    get: () => {
+      const now = new Date();
+      const first = new Date(now.getFullYear(), now.getMonth(), 1);
+      return { from: toDateStr(first), to: toDateStr(now) };
+    },
+  },
+] as const;
+
+// ── Revenue chart ─────────────────────────────────────────────────────────────
+function RevenueChart({ transactions }: { transactions: Transaction[] }) {
+  // Group revenue by day
+  const points = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const t of transactions) {
+      const day = toDateStr(new Date(t.created_at));
+      map.set(day, (map.get(day) ?? 0) + t.total_amount);
+    }
+    const sorted = Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
+    return sorted.map(([date, revenue]) => ({ date, revenue }));
+  }, [transactions]);
+
+  if (points.length === 0) return null;
+
+  const W = 700, H = 200, PAD = { top: 16, right: 16, bottom: 40, left: 64 };
+  const innerW = W - PAD.left - PAD.right;
+  const innerH = H - PAD.top - PAD.bottom;
+
+  const maxRev = Math.max(...points.map((p) => p.revenue), 1);
+  const minRev = 0;
+
+  const xScale = (i: number) =>
+    points.length === 1 ? PAD.left + innerW / 2 : PAD.left + (i / (points.length - 1)) * innerW;
+  const yScale = (v: number) =>
+    PAD.top + innerH - ((v - minRev) / (maxRev - minRev)) * innerH;
+
+  // Smooth polyline path
+  const pathD = points.reduce((acc, p, i) => {
+    const x = xScale(i);
+    const y = yScale(p.revenue);
+    return i === 0 ? `M${x},${y}` : `${acc} L${x},${y}`;
+  }, '');
+
+  // Filled area
+  const areaD = `${pathD} L${xScale(points.length - 1)},${PAD.top + innerH} L${xScale(0)},${PAD.top + innerH} Z`;
+
+  // Y-axis ticks (4 levels)
+  const yTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => ({
+    value: minRev + f * (maxRev - minRev),
+    y: PAD.top + innerH - f * innerH,
+  }));
+
+  // X-axis labels — show max 6 evenly spaced
+  const xLabels = points.length <= 6
+    ? points.map((p, i) => ({ ...p, i }))
+    : [0, 1, 2, 3, 4, 5].map((slot) => {
+        const i = Math.round((slot / 5) * (points.length - 1));
+        return { ...points[i], i };
+      });
+
+  // Tooltip state
+  const [hover, setHover] = useState<{ i: number; x: number; y: number } | null>(null);
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 mb-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <TrendingUp size={18} className="text-brand-primary-600" />
+          <h2 className="font-semibold text-gray-900">Revenue Growth</h2>
+        </div>
+        <span className="text-xs text-gray-400">
+          {points[0]?.date} → {points[points.length - 1]?.date}
+        </span>
+      </div>
+
+      <div className="overflow-x-auto">
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          className="w-full"
+          style={{ minWidth: 320 }}
+          onMouseLeave={() => setHover(null)}
+        >
+          <defs>
+            <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.25" />
+              <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.02" />
+            </linearGradient>
+          </defs>
+
+          {/* Grid lines */}
+          {yTicks.map((t) => (
+            <g key={t.value}>
+              <line
+                x1={PAD.left} y1={t.y}
+                x2={PAD.left + innerW} y2={t.y}
+                stroke="#f3f4f6" strokeWidth="1"
+              />
+              <text
+                x={PAD.left - 8} y={t.y + 4}
+                textAnchor="end"
+                fontSize="10"
+                fill="#9ca3af"
+              >
+                {t.value >= 1000
+                  ? `₹${(t.value / 1000).toFixed(t.value % 1000 === 0 ? 0 : 1)}k`
+                  : `₹${Math.round(t.value)}`}
+              </text>
+            </g>
+          ))}
+
+          {/* Area fill */}
+          <path d={areaD} fill="url(#revGrad)" />
+
+          {/* Line */}
+          <path
+            d={pathD}
+            fill="none"
+            stroke="#3b82f6"
+            strokeWidth="2.5"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+
+          {/* Data points + hover targets */}
+          {points.map((p, i) => {
+            const x = xScale(i);
+            const y = yScale(p.revenue);
+            return (
+              <g key={i}>
+                {/* Invisible wide hit area */}
+                <rect
+                  x={i === 0 ? PAD.left : (xScale(i - 1) + x) / 2}
+                  y={PAD.top}
+                  width={
+                    points.length === 1
+                      ? innerW
+                      : i === 0
+                        ? (x - PAD.left + (xScale(1) - x) / 2)
+                        : i === points.length - 1
+                          ? ((x - xScale(i - 1)) / 2 + PAD.left + innerW - x)
+                          : (xScale(i + 1) - xScale(i - 1)) / 2
+                  }
+                  height={innerH}
+                  fill="transparent"
+                  onMouseEnter={() => setHover({ i, x, y })}
+                />
+                {/* Visible dot on hover */}
+                {hover?.i === i && (
+                  <circle cx={x} cy={y} r={5} fill="#3b82f6" stroke="#fff" strokeWidth="2" />
+                )}
+              </g>
+            );
+          })}
+
+          {/* Tooltip */}
+          {hover !== null && (() => {
+            const p = points[hover.i];
+            const tipW = 110, tipH = 46;
+            const tx = Math.min(Math.max(hover.x - tipW / 2, PAD.left), PAD.left + innerW - tipW);
+            // Place tooltip BELOW the dot; clamp so it never overflows SVG bottom
+            const tyBelow = hover.y + 12;
+            const ty = Math.min(tyBelow, H - tipH - 4);
+            return (
+              <g>
+                <rect x={tx} y={ty} width={tipW} height={tipH} rx="6" fill="#1e293b" />
+                <text x={tx + tipW / 2} y={ty + 16} textAnchor="middle" fontSize="10" fill="#94a3b8">
+                  {new Date(p.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                </text>
+                <text x={tx + tipW / 2} y={ty + 34} textAnchor="middle" fontSize="13" fontWeight="600" fill="#fff">
+                  {formatCurrency(p.revenue)}
+                </text>
+              </g>
+            );
+          })()}
+
+          {/* X-axis labels */}
+          {xLabels.map(({ date, i }) => (
+            <text
+              key={i}
+              x={xScale(i)}
+              y={H - 6}
+              textAnchor="middle"
+              fontSize="10"
+              fill="#9ca3af"
+            >
+              {new Date(date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+            </text>
+          ))}
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+// ── Copy-to-clipboard button ──────────────────────────────────────────────────
 function CopyButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
   const handle = async (e: React.MouseEvent) => {
@@ -75,9 +289,6 @@ function CopyButton({ value }: { value: string }) {
 
 // ── Razorpay dashboard deep-link helper ───────────────────────────────────────
 function rzpDashboardUrl(paymentId: string, isTestMode: boolean) {
-  // Razorpay dashboard URL is the same for both modes.
-  // The user must toggle Test/Live in the Razorpay dashboard themselves.
-  // Deep-linking to the payment works in both modes with the same path.
   const base = 'https://dashboard.razorpay.com/app/payments';
   return `${base}/${paymentId}${isTestMode ? '?mode=test' : ''}`;
 }
@@ -92,9 +303,25 @@ export default function AdminTransactionsPage() {
   const [search, setSearch]               = useState('');
   const [dateFrom, setDateFrom]           = useState('');
   const [dateTo, setDateTo]               = useState('');
+  const [activePreset, setActivePreset]   = useState<string | null>(null);
 
   const pageSize   = 20;
   const totalPages = Math.ceil(total / pageSize);
+
+  const applyPreset = (preset: typeof DATE_PRESETS[number]) => {
+    const { from, to } = preset.get();
+    setDateFrom(from);
+    setDateTo(to);
+    setActivePreset(preset.label);
+    setPage(1);
+  };
+
+  const clearDates = () => {
+    setDateFrom('');
+    setDateTo('');
+    setActivePreset(null);
+    setPage(1);
+  };
 
   // Client-side name filter applied on top of server-side payment-id filter
   const filtered = search.trim()
@@ -117,8 +344,8 @@ export default function AdminTransactionsPage() {
       const params = new URLSearchParams({
         page:     String(page),
         pageSize: String(pageSize),
-        ...(dateFrom       ? { dateFrom } : {}),
-        ...(dateTo         ? { dateTo   } : {}),
+        ...(dateFrom ? { dateFrom } : {}),
+        ...(dateTo   ? { dateTo   } : {}),
       });
 
       const res  = await fetch(`/api/admin/transactions?${params}`);
@@ -235,6 +462,11 @@ export default function AdminTransactionsPage() {
         </div>
       </div>
 
+      {/* Revenue chart */}
+      {!loading && filtered.length > 0 && (
+        <RevenueChart transactions={filtered} />
+      )}
+
       {/* Filters */}
       <div className="flex flex-col gap-3 mb-6">
         {/* Search */}
@@ -259,28 +491,56 @@ export default function AdminTransactionsPage() {
           )}
         </div>
 
-        {/* Date range */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <Calendar size={15} className="text-gray-400 flex-shrink-0" />
-          <input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
-            className="flex-1 min-w-[120px] px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary-500"
-          />
-          <span className="text-gray-400 text-sm">to</span>
-          <input
-            type="date"
-            value={dateTo}
-            onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
-            className="flex-1 min-w-[120px] px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary-500"
-          />
+        {/* Date presets + date range */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Quick preset buttons */}
+          {DATE_PRESETS.map((preset) => {
+            const isActive = activePreset === preset.label;
+            return (
+              <button
+                key={preset.label}
+                onClick={() => applyPreset(preset)}
+                className={`px-3 py-2 text-xs font-semibold rounded-lg border transition-all duration-200 whitespace-nowrap active:scale-95 ${
+                  isActive
+                    ? 'bg-brand-primary-50 text-brand-primary-700 border-brand-primary-200 ring-1 ring-brand-primary-100/50 shadow-sm'
+                    : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-gray-300 shadow-sm hover:shadow'
+                }`}
+              >
+                {preset.label}
+              </button>
+            );
+          })}
+
+          {/* Divider */}
+          <span className="text-gray-300 hidden sm:inline">|</span>
+
+          {/* Date inputs — narrow */}
+          <div className="flex items-center gap-2">
+            <Calendar size={15} className="text-gray-400 flex-shrink-0" />
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => { setDateFrom(e.target.value); setActivePreset(null); setPage(1); }}
+              className="w-32 px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg bg-neutral-50/50 hover:bg-neutral-50 focus:bg-white focus:border-brand-primary-500 focus:ring-4 focus:ring-brand-primary-50 transition-all font-medium text-neutral-700 outline-none shadow-inner/5"
+              title="From date"
+            />
+            <span className="text-gray-400 text-xs">–</span>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => { setDateTo(e.target.value); setActivePreset(null); setPage(1); }}
+              className="w-32 px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg bg-neutral-50/50 hover:bg-neutral-50 focus:bg-white focus:border-brand-primary-500 focus:ring-4 focus:ring-brand-primary-50 transition-all font-medium text-neutral-700 outline-none shadow-inner/5"
+              title="To date"
+            />
+          </div>
+
+          {/* Clear dates */}
           {(dateFrom || dateTo) && (
             <button
-              onClick={() => { setDateFrom(''); setDateTo(''); setPage(1); }}
-              className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1"
+              onClick={clearDates}
+              className="text-xs text-gray-500 hover:text-red-600 px-2.5 py-1.5 rounded-lg hover:bg-red-50 transition-all active:scale-95 font-medium"
             >
-              Clear dates
+              Clear
             </button>
           )}
         </div>

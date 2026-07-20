@@ -9,6 +9,7 @@ import { ShoppingCart, LogIn, Search, Menu, X, UserCircle, ChevronDown, Clock, M
 import { CartOverlay } from '@/components/store/CartOverlay';
 import { MenuOverlay } from './MenuOverlay';
 import { Logo } from './Logo';
+import { AuthModal } from './AuthModal';
 
 interface HeaderProps {
   /** Hide the search bar on task-focused pages (checkout, orders, account, etc.) */
@@ -24,6 +25,7 @@ export function Header({ hideSearch = false }: HeaderProps) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
   const handleSignOut = async () => {
@@ -198,21 +200,22 @@ export function Header({ hideSearch = false }: HeaderProps) {
             </>
           ) : (
             <>
-              {/* mobile login icon */}
-              <Link
-                href="/auth/login"
+              {/* mobile login icon — opens modal */}
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
                 className="text-neutral-700 hover:text-neutral-900 transition flex items-center justify-center h-10 w-10 rounded-md hover:bg-neutral-100 lg:hidden"
+                aria-label="Sign in"
               >
                 <LogIn size={20} strokeWidth={1.5} />
-              </Link>
+              </button>
 
-              {/* desktop login button */}
-              <Link
-                href="/auth/login"
+              {/* desktop login button — opens modal */}
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
                 className="hidden lg:inline-flex bg-brand-accent-500 text-white px-4 py-2 rounded-md hover:bg-brand-primary-500 transition font-medium h-10 items-center"
               >
                 Log In
-              </Link>
+              </button>
             </>
           )}
         </div>
@@ -249,6 +252,12 @@ export function Header({ hideSearch = false }: HeaderProps) {
 
       {/* Cart Overlay */}
       <CartOverlay isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+      />
     </header>
   );
 }

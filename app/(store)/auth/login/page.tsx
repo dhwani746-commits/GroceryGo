@@ -1,61 +1,42 @@
 'use client';
 
-import { useState } from 'react';
-import { AuthForm } from '@/components/store/AuthForm';
+import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { AuthModal } from '@/components/shared/AuthModal';
 
+/**
+ * /auth/login — shows the AuthModal on top of whatever was already in view.
+ * When the modal closes (either via the X button or successful auth), we go back.
+ * Also handles ?error= messages forwarded from the OAuth callback.
+ */
 export default function LoginPage() {
-  const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const defaultTab = (searchParams.get('tab') as 'login' | 'register') ?? 'login';
+
+  const [isOpen, setIsOpen] = useState(true);
+
+  const handleClose = () => {
+    setIsOpen(false);
+    // Navigate back, or fall back to home
+    if (window.history.length > 1) {
+      router.back();
+    } else {
+      router.push('/');
+    }
+  };
+
+  // If the modal was closed via any internal success, also navigate back
+  const handleSuccess = () => {
+    setIsOpen(false);
+    router.back();
+  };
 
   return (
-    <div className="space-y-6 border border-brand-primary-200 p-6 rounded-lg shadow-lg bg-neutral-0 max-w-md mx-auto mt-10">
-      {/* Tabs */}
-      <div className="flex gap-4 border-b border-brand-primary-200">
-        <button
-          onClick={() => setActiveTab('login')}
-          className={`pb-3 px-2 font-semibold transition ${
-            activeTab === 'login'
-              ? 'text-brand-primary-600 border-b-2 border-brand-primary-600'
-              : 'text-neutral-600 hover:text-neutral-900'
-          }`}
-        >
-          Sign In
-        </button>
-        <button
-          onClick={() => setActiveTab('signup')}
-          className={`pb-3 px-2 font-semibold transition ${
-            activeTab === 'signup'
-              ? 'text-brand-accent-700 border-b-2 border-brand-accent-700'
-              : 'text-neutral-600 hover:text-neutral-900'
-          }`}
-        >
-          Sign Up
-        </button>
-      </div>
-
-      {/* Tab Content */}
-      {activeTab === 'login' && (
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-2xl font-bold text-brand-primary-600">Sign In</h1>
-            <p className="mt-2 text-sm text-neutral-600">
-              Enter your credentials to access your account
-            </p>
-          </div>
-          <AuthForm mode="login" />
-        </div>
-      )}
-
-      {activeTab === 'signup' && (
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-2xl font-bold text-brand-accent-700">Create Account</h1>
-            <p className="mt-2 text-sm text-neutral-600">
-              Sign up to start shopping at Krishna Plastics
-            </p>
-          </div>
-          <AuthForm mode="register" />
-        </div>
-      )}
-    </div>
+    <AuthModal
+      isOpen={isOpen}
+      onClose={handleClose}
+      defaultTab={defaultTab}
+    />
   );
 }
