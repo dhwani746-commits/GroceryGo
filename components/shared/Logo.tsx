@@ -1,35 +1,34 @@
 'use client';
 
 import Link from 'next/link';
-import { useStoreSettings } from '@/lib/hooks/useStoreSettings';
+import Image from 'next/image';
 
 interface LogoProps {
   href?: string;
   className?: string;
 }
 
-export function Logo({ href = '/', className = 'text-3xl font-bold' }: LogoProps) {
-  const { storeName } = useStoreSettings();
-  
-  // Split name to color the first word differently
-  const words = storeName.split(' ');
-  const firstWord = words[0] || 'Krishna';
-  const restOfName = words.slice(1).join(' ') || 'Plastics';
+export function Logo({ href = '/', className = '' }: LogoProps) {
+  const heightClasses = className.includes('h-') ? className : `h-11 md:h-14 lg:h-16 ${className}`;
 
-  const logo = (
-    <span className={className}>
-      <span className="text-brand-primary-600">{firstWord} </span>
-      <span className="text-brand-accent-500">{restOfName}</span>
-    </span>
+  const logoContent = (
+    <Image
+      src="/logo.png"
+      alt="GroceryGo"
+      width={240}
+      height={140}
+      priority
+      className={`w-auto object-contain transition-transform duration-200 hover:scale-[1.02] ${heightClasses}`}
+    />
   );
 
   if (href === '/') {
     return (
-      <Link href={href} className="hover:opacity-80 transition">
-        {logo}
+      <Link href={href} className="hover:opacity-95 transition inline-flex items-center">
+        {logoContent}
       </Link>
     );
   }
 
-  return logo;
+  return logoContent;
 }

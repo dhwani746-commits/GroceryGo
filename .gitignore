@@ -39,3 +39,17 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# AI Agent Customizations & Skills
+.agents/
+.claude/
+.gemini/
+skills-lock.json
+
+# Documentation & Setup Markdown files
+*.md
+
+# Database Schema & Migration SQL files
+*.sql
+/supabase/
+

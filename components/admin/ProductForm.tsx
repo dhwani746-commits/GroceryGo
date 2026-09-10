@@ -478,7 +478,7 @@ export function ProductForm({ initialData, mode }: ProductFormProps) {
                           alt={`Product ${index + 1}`}
                           className="w-full h-full object-cover rounded-lg border border-neutral-200"
                           onError={(e) => {
-                            (e.target as HTMLImageElement).src = '/placeholder.png';
+                            (e.target as HTMLImageElement).src = '/no-image.svg';
                           }}
                         />
                         {index === 0 && (

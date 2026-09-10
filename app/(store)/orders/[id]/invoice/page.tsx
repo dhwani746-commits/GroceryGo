@@ -9,7 +9,7 @@ import { InvoiceToolbar } from '@/components/store/InvoiceToolbar';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  return { title: `Invoice ${id.split('-')[0].toUpperCase()} — PlastiKart` };
+  return { title: `Invoice ${id.split('-')[0].toUpperCase()} — GroceryGo` };
 }
 
 export default async function InvoicePage({
@@ -58,8 +58,7 @@ export default async function InvoicePage({
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-8 border-b border-neutral-200">
             <div>
               <div className="flex items-center gap-2 mb-1.5">
-                <Receipt size={24} className="text-brand-primary-600" />
-                <span className="text-2xl font-bold text-neutral-900">{storeSettings.store_name}</span>
+                <img src="/logo.png" alt="GroceryGo" className="h-10 w-auto object-contain" />
               </div>
               <p className="text-xs text-neutral-500 max-w-xs leading-relaxed">
                 {storeSettings.address_line1} {storeSettings.address_line2 && `, ${storeSettings.address_line2}`}

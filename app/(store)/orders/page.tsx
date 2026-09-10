@@ -9,8 +9,8 @@ import { ShoppingBag, Package, ChevronDown, ChevronUp } from 'lucide-react';
 import OrdersClient from '@/components/store/OrdersClient';
 
 export const metadata = {
-  title: 'Your Orders — Krishna Plastics',
-  description: 'Track and view all your orders from Krishna Plastics.',
+  title: 'Your Orders — GroceryGo',
+  description: 'Track and view all your orders from GroceryGo.',
 };
 
 export default async function OrdersPage() {
@@ -28,7 +28,7 @@ export default async function OrdersPage() {
   return (
     <div className="min-h-screen bg-neutral-50">
       <Header hideSearch />
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-15">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28 lg:pt-32 pb-12">
         {/* Breadcrumb */}
         <Breadcrumb
           items={[{ label: 'Your Orders' }]}

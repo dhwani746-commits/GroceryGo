@@ -4,26 +4,32 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { 
-  Home, 
-  Utensils, 
-  Bath, 
-  Sofa, 
-  Lamp, 
-  Package, 
-  Shirt, 
-  Book, 
-  Gamepad2, 
-  Baby, 
-  Heart, 
-  ShoppingBag,
-  Star,
-  Zap,
+  Apple,
+  Carrot,
+  Milk,
+  Wheat,
   Coffee,
-  Car,
-  Music,
-  Camera,
-  Dumbbell,
-  Palette
+  Cookie,
+  Sparkles,
+  ShoppingBag,
+  Utensils,
+  Package,
+  Heart,
+  Baby,
+  Dog,
+  Flame,
+  Wine,
+  Egg,
+  Fish,
+  Soup,
+  Zap,
+  Home,
+  Shirt,
+  Bath,
+  Smile,
+  ShieldCheck,
+  Store,
+  Layers
 } from 'lucide-react';
 
 interface Category {
@@ -31,58 +37,35 @@ interface Category {
   image_url: string;
 }
 
-// Icon mapping for different categories
+// Icon mapping for all grocery, food & household categories
 const getCategoryIcon = (categoryName: string) => {
   const name = categoryName.toLowerCase();
   
-  // Map category names to appropriate icons
+  if (name.includes('fruit') || name.includes('veggie') || name.includes('vegetable') || name.includes('produce')) return Carrot;
+  if (name.includes('dairy') || name.includes('milk') || name.includes('bakery') || name.includes('bread') || name.includes('cheese') || name.includes('egg')) return Milk;
+  if (name.includes('staple') || name.includes('rice') || name.includes('atta') || name.includes('grain') || name.includes('dal') || name.includes('flour') || name.includes('wheat')) return Wheat;
+  if (name.includes('snack') || name.includes('biscuit') || name.includes('chip') || name.includes('cookie') || name.includes('munchie')) return Cookie;
+  if (name.includes('beverage') || name.includes('drink') || name.includes('tea') || name.includes('coffee') || name.includes('juice')) return Coffee;
+  if (name.includes('personal') || name.includes('beauty') || name.includes('hygiene') || name.includes('soap')) return Heart;
+  if (name.includes('clean') || name.includes('household') || name.includes('detergent') || name.includes('home')) return Sparkles;
+  if (name.includes('baby') || name.includes('kid')) return Baby;
+  if (name.includes('pet')) return Dog;
+  if (name.includes('instant') || name.includes('noodle') || name.includes('ready') || name.includes('frozen') || name.includes('meal')) return Utensils;
+  if (name.includes('meat') || name.includes('fish') || name.includes('chicken') || name.includes('sea')) return Fish;
+  
+  // General fallbacks
   const iconMap: Record<string, any> = {
     'home': Home,
     'kitchen': Utensils,
-    'kitchenware': Utensils,
     'bath': Bath,
-    'bathroom': Bath,
-    'furniture': Sofa,
-    'sofa': Sofa,
-    'living': Sofa,
-    'lighting': Lamp,
-    'lamps': Lamp,
     'storage': Package,
-    'organization': Package,
     'clothing': Shirt,
-    'fashion': Shirt,
-    'apparel': Shirt,
-    'books': Book,
-    'education': Book,
-    'toys': Gamepad2,
-    'games': Gamepad2,
-    'baby': Baby,
-    'kids': Baby,
-    'health': Heart,
-    'beauty': Heart,
-    'personal': Heart,
-    'bags': ShoppingBag,
-    'accessories': ShoppingBag,
-    'decor': Star,
-    'decoration': Star,
     'electronics': Zap,
-    'gadgets': Zap,
-    'coffee': Coffee,
-    'drinkware': Coffee,
-    'car': Car,
-    'auto': Car,
-    'music': Music,
-    'audio': Music,
-    'camera': Camera,
-    'photography': Camera,
-    'sports': Dumbbell,
-    'fitness': Dumbbell,
-    'art': Palette,
-    'craft': Palette,
-    'hobby': Palette,
+    'deals': Flame,
+    'essential': Store,
   };
   
-  return iconMap[name] || ShoppingBag; // Default icon
+  return iconMap[name] || ShoppingBag;
 };
 
 export function CategoryIcons() {
@@ -104,7 +87,7 @@ export function CategoryIcons() {
         setCategories(
           (categoryData || []).map(cat => ({
             name: cat.name,
-            image_url: cat.image_url || '/placeholder.png'
+            image_url: cat.image_url || '/no-image.svg'
           }))
         );
       } catch (err) {
@@ -140,8 +123,8 @@ export function CategoryIcons() {
       {/* Horizontal scroll container */}
       <div className="relative">
         {/* Scroll indicators */}
-        <div className="absolute left-0 top-0 bottom-0 w-8 from-white to-transparent z-10 pointer-events-none" />
-        <div className="absolute right-0 top-0 bottom-0 w-8 from-white to-transparent z-10 pointer-events-none" />
+        <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none" />
+        <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none" />
         
         {/* Scrollable content */}
         <div className="flex justify-between gap-4 overflow-x-auto scrollbar-hide pb-2 scroll-smooth lg:justify-center lg:gap-8">
@@ -155,7 +138,7 @@ export function CategoryIcons() {
                 className="flex flex-col items-center gap-2 group flex-shrink-0 min-w-0"
               >
                 {/* Icon container */}
-                <div className="w-14 h-14 bg-neutral-100 rounded-full flex items-center justify-center group-hover:bg-brand-primary-100 transition-colors duration-200 border-2 border-transparent group-hover:border-brand-primary-200">
+                <div className="w-14 h-14 bg-neutral-100 rounded-full flex items-center justify-center group-hover:bg-brand-primary-100 group-hover:scale-105 transition-all duration-200 border-2 border-transparent group-hover:border-brand-primary-200">
                   <Icon 
                     size={24} 
                     className="text-neutral-600 group-hover:text-brand-primary-600 transition-colors duration-200" 
@@ -163,7 +146,7 @@ export function CategoryIcons() {
                 </div>
                 
                 {/* Category name */}
-                <h4 className="text-xs font-medium text-center text-gray-700 group-hover:text-brand-primary-700 transition-colors duration-200 capitalize whitespace-nowrap max-w-[60px] truncate">
+                <h4 className="text-xs font-medium text-center text-gray-700 group-hover:text-brand-primary-700 transition-colors duration-200 capitalize max-w-[72px] leading-tight line-clamp-2">
                   {category.name}
                 </h4>
               </Link>
@@ -172,16 +155,7 @@ export function CategoryIcons() {
         </div>
       </div>
       
-      {/* Custom scrollbar styles */}
-      <style jsx>{`
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
+
     </div>
   );
 }

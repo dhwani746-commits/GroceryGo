@@ -5,6 +5,8 @@ import { ProductSegments } from '@/components/store/ProductSegments';
 import { HeroBanner } from '@/components/store/HeroBanner';
 import { Truck, BadgeCheck, RefreshCcw, Headphones } from 'lucide-react';
 
+import { GroceryCardScroll } from '@/components/store/GroceryCardScroll';
+
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen bg-white">
@@ -18,9 +20,12 @@ export default function Home() {
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 max-w-7xl mx-auto px-4 py-8 w-full">
+      <main id="main-content" className="flex-1 max-w-7xl mx-auto px-4 py-8 w-full">
         {/* Hero Banner */}
         <HeroBanner />
+
+        {/* Interactive Skiper UI Grocery Card Scroll */}
+        <GroceryCardScroll />
 
         {/* Product Segments */}
         <div id="products" className="mt-12">

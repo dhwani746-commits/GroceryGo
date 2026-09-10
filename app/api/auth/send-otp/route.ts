@@ -69,14 +69,14 @@ export async function POST(request: NextRequest) {
     const { data, error } = await resend.emails.send({
       from: 'onboarding@resend.dev',
       to: [email],
-      subject: 'Krishna Plastics - Verify Your Email',
+      subject: 'GroceryGo - Verify Your Email',
       html: `
         <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Verify Your Email – Krishna Plastics</title>
+  <title>Verify Your Email – GroceryGo</title>
 
   <style>
     @media only screen and (max-width: 600px) {
@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
                 <tr>
                   <td class="brand-box" width="200" height="36" style="background-color:#F07B00; border-radius:8px; text-align:center;">
                     <span style="font-size:20px; font-weight:700; color:#ffffff; letter-spacing:0.3px; line-height:36px; display:block;">
-                      Krishna Plastics
+                      GroceryGo
                     </span>
                   </td>
                 </tr>
@@ -186,8 +186,8 @@ export async function POST(request: NextRequest) {
 
                     <p class="body-text" style="margin:0; font-size:15px; color:#717171; line-height:1.65;">
                       Thanks for signing up with
-                      <strong style="color:#1A1A1A;">Krishna Plastics</strong>!
-                      Use the code below to complete your registration.
+                      <strong style="color:#1A1A1A;">GroceryGo</strong>!
+                      Use the code below to complete your verification.
                     </p>
                   </td>
                 </tr>
@@ -235,7 +235,7 @@ export async function POST(request: NextRequest) {
                   <td style="padding:14px 16px;">
                     <p class="security" style="margin:0; font-size:13px; color:#717171; line-height:1.6;">
                       🔒 <strong style="color:#3D3D3D;">Never share this code.</strong>
-                      Krishna Plastics will never ask for your OTP via phone, email, or chat.
+                      GroceryGo will never ask for your OTP via phone, email, or chat.
                     </p>
                   </td>
                 </tr>
@@ -259,7 +259,7 @@ export async function POST(request: NextRequest) {
               </p>
 
               <p style="margin:0; font-size:12px; color:#C8C8C8;">
-                © 2026 Krishna Plastics. All rights reserved.
+                © 2026 GroceryGo. All rights reserved.
               </p>
             </td>
           </tr>

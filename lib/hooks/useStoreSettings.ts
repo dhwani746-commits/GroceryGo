@@ -39,8 +39,8 @@ export function useStoreSettings() {
     settings: data ?? null,
     loading: isLoading,
     error: isError,
-    storeName: data?.store_name || 'Krishna Plastics',
-    supportEmail: data?.support_email || 'support@krishnaplastics.in',
+    storeName: data?.store_name || 'GroceryGo',
+    supportEmail: data?.support_email || 'support@grocerygo.in',
     supportPhone: data?.support_phone || '+91 99999 99999',
     address: data
       ? `${data.address_line1 || ''} ${data.address_line2 || ''}, ${data.city || ''}, ${data.state || ''} ${data.pincode || ''}`.trim()

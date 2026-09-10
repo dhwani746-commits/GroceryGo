@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import AccountPageClient from './AccountPageClient';
 
 export const metadata = {
-  title: 'My Account — Krishna Plastics',
+  title: 'My Account — GroceryGo',
   description: 'Manage your account information and preferences.',
 };
 

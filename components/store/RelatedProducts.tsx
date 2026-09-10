@@ -48,7 +48,7 @@ export function RelatedProducts({
           
           const { data: sameCategoryData, error: sameCategoryError } = await supabase
             .from('products')
-            .select('id, name, slug, price, description, image_urls, stock_quantity')
+            .select('id, name, slug, price, description, image_urls, stock_quantity, category')
             .eq('is_visible', true)
             .is('deleted_at', null)
             .eq('category', category)
@@ -69,7 +69,7 @@ export function RelatedProducts({
         if (category) {
           let query = supabase
             .from('products')
-            .select('id, name, slug, price, description, image_urls, stock_quantity')
+            .select('id, name, slug, price, description, image_urls, stock_quantity, category')
             .eq('is_visible', true)
             .is('deleted_at', null)
             .eq('category', category);
@@ -95,7 +95,7 @@ export function RelatedProducts({
 
           let query = supabase
             .from('products')
-            .select('id, name, slug, price, description, image_urls, stock_quantity')
+            .select('id, name, slug, price, description, image_urls, stock_quantity, category')
             .eq('is_visible', true)
             .is('deleted_at', null)
             .gte('price', priceMin)
@@ -118,7 +118,7 @@ export function RelatedProducts({
         // Ultimate fallback: any products
         let differentCategoryQuery = supabase
           .from('products')
-          .select('id, name, slug, price, description, image_urls, stock_quantity')
+          .select('id, name, slug, price, description, image_urls, stock_quantity, category')
           .eq('is_visible', true)
           .is('deleted_at', null);
 

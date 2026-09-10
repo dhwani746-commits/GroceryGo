@@ -71,7 +71,7 @@ export default function AccountPageClient({ user, profile, orders }: AccountPage
     <div className="min-h-screen bg-neutral-50">
       <Header hideSearch />
       
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-20">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28 lg:pt-32 pb-12">
         {/* Breadcrumb */}
         <Breadcrumb
           items={[{ label: 'My Account' }]}

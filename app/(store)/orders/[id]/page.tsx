@@ -17,7 +17,7 @@ import {
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  return { title: `Order ${id.split('-')[0].toUpperCase()} — Krishna Plastics` };
+  return { title: `Order ${id.split('-')[0].toUpperCase()} — GroceryGo` };
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
@@ -54,7 +54,7 @@ export default async function OrderDetailPage({
     return (
       <div className="min-h-screen bg-neutral-50">
         <Header hideSearch />
-        <div className="max-w-2xl mx-auto px-4 py-24 mt-20 text-center">
+        <div className="max-w-2xl mx-auto px-4 pt-28 pb-16 text-center">
           <ShoppingBag size={48} className="mx-auto text-neutral-300 mb-4" />
           <h1 className="text-2xl font-bold text-neutral-900 mb-2">Order not found</h1>
           <p className="text-neutral-500 mb-6">This order doesn't exist or belongs to another account.</p>
@@ -74,7 +74,7 @@ export default async function OrderDetailPage({
   return (
     <div className="min-h-screen bg-neutral-50">
       <Header hideSearch />
-      <div className="max-w-4xl mx-auto px-4 py-8 mt-15">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28 lg:pt-32 pb-12">
 
         {/* Breadcrumb */}
         <div className="mb-6">
@@ -89,7 +89,7 @@ export default async function OrderDetailPage({
 
         {/* Success Banner */}
         {isSuccess && (
-          <div className="mt-15 mb-6 flex items-start gap-3 bg-status-success-50 border border-status-success-200 rounded-2xl px-5 py-4">
+          <div className="mb-6 flex items-start gap-3 bg-status-success-50 border border-status-success-200 rounded-2xl px-5 py-4">
             <CheckCircle2 size={24} className="text-status-success-600 flex-shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold text-status-success-800">Order placed successfully!</p>

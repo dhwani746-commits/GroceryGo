@@ -15,8 +15,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Krishna Plastics - Premium Plastic Products',
-  description: 'Shop quality plastic containers, buckets, and more at Krishna Plastics',
+  title: 'GroceryGo - Fresh Groceries & Daily Essentials',
+  description: 'Shop farm-fresh fruits, vegetables, dairy, staples and daily essentials at GroceryGo',
+  icons: {
+    icon: '/logo.png',
+    shortcut: '/logo.png',
+    apple: '/logo.png',
+  },
 };
 
 export default function RootLayout({
@@ -30,6 +35,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <a href="#main-content" className="skip-to-content">Skip to main content</a>
         <Providers>{children}</Providers>
         <VercelAnalytics />
       </body>

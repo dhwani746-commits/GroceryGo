@@ -23,6 +23,15 @@ export async function POST(req: Request) {
     const supabase = await createClient();
     const body = await req.json();
     
+    // Auto-create category if it does not exist in categories table
+    if (body.category && typeof body.category === 'string') {
+      const catName = body.category.trim();
+      const slug = catName.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
+      await supabase
+        .from('categories')
+        .upsert({ name: catName, slug }, { onConflict: 'name', ignoreDuplicates: true });
+    }
+
     const { data, error } = await supabase
       .from('products')
       .insert([{
@@ -32,7 +41,7 @@ export async function POST(req: Request) {
         price: parseFloat(body.price),
         original_price: body.original_price ? parseFloat(body.original_price) : null,
         stock_quantity: parseInt(body.stock_quantity),
-        category: body.category,
+        category: body.category?.trim(),
         image_urls: body.image_urls || [],
         is_visible: body.is_visible !== false,
       }])

@@ -15,13 +15,22 @@ export interface ProductRow {
 export function downloadExcelTemplate() {
   const templateData: ProductRow[] = [
     {
-      name: 'Example Product',
-      slug: 'example-product',
-      price: '299.99',
-      category: 'Containers',
-      description: 'High-quality plastic container',
-      image_urls: 'https://example.com/image1.jpg',
-      stock_quantity: 50,
+      name: 'Fresh Shimla Apples 1kg',
+      slug: 'fresh-shimla-apples-1kg',
+      price: '180.00',
+      category: 'Fruits & Vegetables',
+      description: 'Crisp and juicy farm fresh Shimla apples',
+      image_urls: 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6',
+      stock_quantity: 100,
+    },
+    {
+      name: 'Amul Taaza T-Special Milk 1L',
+      slug: 'amul-taaza-milk-1l',
+      price: '68.00',
+      category: 'Dairy & Bakery',
+      description: 'Pasteurised toned milk',
+      image_urls: 'https://images.unsplash.com/photo-1550583724-b2692b85b150',
+      stock_quantity: 200,
     },
   ];
 
@@ -31,16 +40,16 @@ export function downloadExcelTemplate() {
 
   // Set column widths
   worksheet['!cols'] = [
-    { wch: 25 }, // name
-    { wch: 25 }, // slug
+    { wch: 30 }, // name
+    { wch: 30 }, // slug
     { wch: 12 }, // price
-    { wch: 15 }, // category
-    { wch: 40 }, // description
-    { wch: 50 }, // image_urls
+    { wch: 22 }, // category
+    { wch: 45 }, // description
+    { wch: 55 }, // image_urls
     { wch: 15 }, // stock_quantity
   ];
 
-  XLSX.writeFile(workbook, 'plastikart-products-template.xlsx');
+  XLSX.writeFile(workbook, 'grocerygo-products-template.xlsx');
 }
 
 // Parse uploaded Excel file

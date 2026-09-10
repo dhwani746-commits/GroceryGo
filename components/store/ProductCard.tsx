@@ -1,38 +1,42 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { useCart } from '@/lib/store/cart';
 import { formatCurrency } from '@/lib/utils';
 import { getProductDiscount } from '@/lib/utils/discounts';
-import { ShoppingCart, CheckCircle2, CircleSlash } from 'lucide-react';
+import { ShoppingCart, CheckCircle2, CircleSlash, Plus, Check } from 'lucide-react';
 
 interface Product {
   id: string;
   name: string;
   slug: string;
-  price: string;
+  price: string | number;
   original_price?: number | null;
   discount_percentage?: number | null;
-  description: string | null;
-  image_urls: string[] | null;
+  description?: string | null;
+  image_urls?: string[] | null;
   stock_quantity: number;
+  category?: string | null;
 }
 
 export function ProductCard({ product }: { product: Product }) {
   const { addItem, items } = useCart();
+  const [addedTemp, setAddedTemp] = useState(false);
   const inStock = product.stock_quantity > 0;
   const cartItem = items.find((i) => i.id === product.id);
-  const isInCart = !!cartItem;
+  const inCartCount = cartItem?.quantity || 0;
+  const isInCart = inCartCount > 0;
 
-  const priceInCents = Math.round(Number(product.price) * 100);
+  const numPrice = Number(product.price);
+  const priceInCents = Math.round(numPrice * 100);
   const discount = getProductDiscount({
-    price: Number(product.price),
+    price: numPrice,
     original_price: product.original_price,
     discount_percentage: product.discount_percentage,
   });
-  const originalPrice = discount?.originalPrice ?? priceInCents;
-  const savingsInCents = discount?.savingsInCents ?? 0;
-  const discountPercent = discount?.discountPercent ?? 0;
+  const originalPriceInCents = discount?.originalPrice;
+  const discountPercent = discount?.discountPercent;
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -41,98 +45,140 @@ export function ProductCard({ product }: { product: Product }) {
       addItem({
         id: product.id,
         name: product.name,
-        price: product.price,
+        price: numPrice,
         quantity: 1,
         slug: product.slug,
         image: product.image_urls?.[0],
       });
+
+      setAddedTemp(true);
+      setTimeout(() => setAddedTemp(false), 1500);
     }
   };
 
+  const imgUrl = product.image_urls?.[0];
+
   return (
     <Link href={`/products/${product.slug}`} className="block h-full">
-      <div className="bg-white rounded-lg border border-neutral-200 hover:shadow-md transition-shadow overflow-hidden flex flex-col h-full relative">
-        {/* Image with discount badge */}
-        <div className="w-full aspect-square bg-neutral-100 overflow-hidden relative">
-          <img
-            src={product.image_urls?.[0] || '/placeholder.png'}
-            alt={product.name}
-            className="object-cover w-full h-full"
-          />
-          {discount && (
-            <div className="absolute top-2 right-2 bg-status-danger-600 text-white px-2 py-1 rounded-md text-xs font-bold shadow-md">
-              {discount.discountPercent}% OFF
+      <div className="bg-white rounded-2xl border border-neutral-200/80 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col h-full group overflow-hidden hover:-translate-y-1 relative">
+        {/* Image Container with Badges */}
+        <div className="relative aspect-square w-full bg-neutral-50 overflow-hidden">
+          {imgUrl ? (
+            <img
+              src={imgUrl}
+              alt={product.name}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-4xl">
+              🥦
             </div>
           )}
+
+          {/* Out of Stock Badge */}
+          {!inStock && (
+            <span className="absolute top-3 left-3 bg-red-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow">
+              Out of Stock
+            </span>
+          )}
+
+          {/* Discount Badge */}
+          {discountPercent && discountPercent > 0 ? (
+            <span className="absolute top-3 right-3 bg-emerald-500 text-white text-[11px] font-extrabold px-2 py-0.5 rounded-lg shadow">
+              {discountPercent}% OFF
+            </span>
+          ) : null}
+
+          {/* Quick Floating Add-to-Cart Button */}
+          <button
+            onClick={handleAddToCart}
+            disabled={!inStock}
+            className={`absolute bottom-3 right-3 p-2.5 sm:p-3 rounded-2xl shadow-lg transition-all duration-300 cursor-pointer ${
+              !inStock
+                ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                : addedTemp || isInCart
+                ? 'bg-emerald-600 text-white scale-105'
+                : 'bg-brand-primary-600 hover:bg-brand-primary-700 text-white hover:scale-110'
+            }`}
+            aria-label="Add to Cart"
+          >
+            {!inStock ? (
+              <CircleSlash size={16} strokeWidth={2} />
+            ) : addedTemp || isInCart ? (
+              <Check size={16} strokeWidth={3} />
+            ) : (
+              <Plus size={16} strokeWidth={3} />
+            )}
+          </button>
         </div>
 
-        <div className="p-2.5 sm:p-4 flex flex-col flex-1">
-          <h3 className="font-medium text-neutral-900 line-clamp-2 text-xs sm:text-sm leading-snug">{product.name}</h3>
-          {/* Description hidden on mobile — too cramped in 2-col grid */}
-          <p className="hidden sm:block text-xs text-neutral-600 line-clamp-2 mt-1 flex-1">{product.description}</p>
+        {/* Details Content */}
+        <div className="p-3.5 sm:p-4 flex-1 flex flex-col justify-between space-y-2">
+          <div>
+            {product.category && (
+              <div className="text-[11px] font-semibold text-brand-primary-600 uppercase tracking-wide mb-1">
+                {product.category}
+              </div>
+            )}
+            <h3 className="text-sm font-bold text-neutral-900 group-hover:text-brand-primary-600 transition line-clamp-1">
+              {product.name}
+            </h3>
+            {product.description && (
+              <p className="hidden sm:block text-xs text-neutral-500 line-clamp-2 mt-0.5">
+                {product.description}
+              </p>
+            )}
+          </div>
 
-          {/* Price section with discount */}
-          <div className="mt-2 sm:mt-4 mb-2 sm:mb-3 space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="text-sm sm:text-base font-semibold text-brand-primary-600">
-                {formatCurrency(Number(product.price))}
-              </span>
-              {discount && (
-                <span className="text-xs sm:text-sm text-neutral-500 line-through">
-                  {formatCurrency(discount.originalPrice / 100)}
+          {/* Pricing & Cart Counter */}
+          <div className="pt-2 border-t border-neutral-100 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-base sm:text-lg font-extrabold text-neutral-900">
+                  {formatCurrency(numPrice)}
+                </span>
+                {originalPriceInCents && originalPriceInCents > priceInCents && (
+                  <span className="text-xs text-neutral-400 line-through">
+                    {formatCurrency(originalPriceInCents / 100)}
+                  </span>
+                )}
+              </div>
+
+              {inCartCount > 0 && (
+                <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                  {inCartCount} in cart
                 </span>
               )}
             </div>
-            {savingsInCents > 0 && (
-              <div className="text-xs font-medium text-status-success-700">
-                Save {formatCurrency(savingsInCents / 100)}
-              </div>
-            )}
-          </div>
 
-          {/* Stock status */}
-          <div className="flex items-center justify-between gap-1 mb-2 sm:mb-3">
-            <div />
-            {product.stock_quantity === 0 && (
-              <div className="flex items-center gap-1 text-xs font-medium text-status-danger-700 bg-status-danger-50 px-1.5 py-0.5 rounded-sm flex-shrink-0">
-                <CircleSlash size={12} strokeWidth={1.5} />
-                <span className="hidden sm:inline">Out of Stock</span>
-                <span className="sm:hidden">OOS</span>
-              </div>
-            )}
-            {product.stock_quantity > 0 && product.stock_quantity <= 3 && (
-              <div className="text-xs font-medium text-status-warning-700 bg-status-warning-50 px-1.5 py-0.5 rounded-sm flex-shrink-0">
-                Only {product.stock_quantity} left
-              </div>
-            )}
-          </div>
-
-          <div onClick={(e) => e.preventDefault()} className="mt-auto">
-            {!inStock ? (
-              <button
-                disabled
-                className="w-full rounded-md font-medium h-9 sm:h-10 flex items-center justify-center gap-1.5 text-xs sm:text-sm bg-neutral-100 text-neutral-400 border border-neutral-200 cursor-not-allowed"
-              >
-                <CircleSlash size={14} strokeWidth={1.5} />
-                Out of Stock
-              </button>
-            ) : isInCart ? (
-              <button
-                disabled
-                className="w-full rounded-md font-medium h-9 sm:h-10 flex items-center justify-center gap-1.5 text-xs sm:text-sm border border-black bg-status-success-700 text-white cursor-not-allowed"
-              >
-                <CheckCircle2 size={14} strokeWidth={1.5} />
-                In Cart
-              </button>
-            ) : (
-              <button
-                onClick={handleAddToCart}
-                className="w-full rounded-md font-medium h-9 sm:h-10 flex items-center justify-center gap-1.5 text-xs sm:text-sm border border-black bg-brand-primary-700 text-white hover:bg-brand-primary-600 transition-colors"
-              >
-                Add to Cart
-                <ShoppingCart size={14} strokeWidth={1.5} />
-              </button>
-            )}
+            {/* Bottom Button */}
+            <div onClick={(e) => e.preventDefault()}>
+              {!inStock ? (
+                <button
+                  disabled
+                  className="w-full rounded-xl font-semibold h-9 flex items-center justify-center gap-1 text-xs bg-neutral-100 text-neutral-400 border border-neutral-200 cursor-not-allowed"
+                >
+                  <CircleSlash size={14} strokeWidth={1.5} />
+                  Out of Stock
+                </button>
+              ) : isInCart ? (
+                <button
+                  onClick={handleAddToCart}
+                  className="w-full rounded-xl font-bold h-9 flex items-center justify-center gap-1.5 text-xs border border-emerald-600 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-all active:scale-95 cursor-pointer"
+                >
+                  <CheckCircle2 size={14} strokeWidth={2} />
+                  Add More ({inCartCount})
+                </button>
+              ) : (
+                <button
+                  onClick={handleAddToCart}
+                  className="w-full rounded-xl font-bold h-9 flex items-center justify-center gap-1.5 text-xs border border-brand-primary-700 bg-brand-primary-700 text-white hover:bg-brand-primary-600 active:scale-95 transition-all shadow-sm cursor-pointer"
+                >
+                  <ShoppingCart size={14} strokeWidth={2} />
+                  Add to Cart
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>

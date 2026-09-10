@@ -353,7 +353,7 @@ export default function AddressesPage() {
     <div className="min-h-screen bg-neutral-50">
       <Header hideSearch />
 
-      <main className="max-w-3xl mx-auto px-4 py-8 mt-20">
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28 lg:pt-32 pb-12">
         {/* Breadcrumb */}
         <Breadcrumb
           items={[{ label: 'Saved Addresses' }]}

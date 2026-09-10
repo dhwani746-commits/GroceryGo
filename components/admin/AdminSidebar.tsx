@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Package, Settings, ShoppingCart, Tag, Users, X, User, LogOut, CreditCard } from 'lucide-react';
 import { useStoreSettings } from '@/lib/hooks/useStoreSettings';
@@ -58,10 +59,17 @@ export function AdminSidebar({ isOpen, onClose, username }: AdminSidebarProps) {
       >
         <nav className="p-4 py-6 md:py-8 space-y-4 w-64 flex flex-col h-full overflow-y-auto">
           {/* Header with Close Button */}
-          <div className="flex justify-between items-start pb-4 border-b border-gray-200">
-            <div className="font-bold text-lg text-brand-primary-600 truncate pr-2" title={`${storeName} Admin`}>{storeName} Admin
-              <div className="text-sm text-gray-500">MANAGEMENT PORTAL</div>
-            </div>
+          <div className="flex justify-between items-center pb-4 border-b border-gray-200">
+            <Link href="/admin/dashboard" className="hover:opacity-90 transition">
+              <Image
+                src="/logo.png"
+                alt="GroceryGo Admin"
+                width={180}
+                height={50}
+                priority
+                className="h-11 w-auto object-contain"
+              />
+            </Link>
             <button
               onClick={onClose}
               className="p-2 hover:bg-gray-100 rounded-lg transition text-gray-700 md:hidden flex-shrink-0"

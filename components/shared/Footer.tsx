@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Phone, Mail, MapPin, Package } from 'lucide-react';
+import { Phone, Mail, MapPin, ShoppingBasket } from 'lucide-react';
 import { useStoreSettings } from '@/lib/hooks/useStoreSettings';
 
 export function Footer() {
@@ -14,11 +14,11 @@ export function Footer() {
         {/* Brand */}
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <Package size={20} className="text-brand-primary-400" />
+            <ShoppingBasket size={20} className="text-brand-primary-400" />
             <h3 className="text-white font-bold text-lg">{storeName}</h3>
           </div>
           <p className="text-sm text-neutral-400 leading-relaxed">
-            Quality household plastic products, delivered fast across India.
+            Fresh groceries, daily essentials &amp; pantry staples delivered fast across India.
           </p>
         </div>
 
@@ -75,8 +75,14 @@ export function Footer() {
       </div>
 
       {/* Bottom bar */}
-      <div className="border-t border-neutral-800 py-4 text-center text-xs text-neutral-500">
-        © {new Date().getFullYear()} {storeName}. All rights reserved.
+      <div className="border-t border-neutral-800 py-4 px-6">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-neutral-500">
+          <span>© {new Date().getFullYear()} {storeName}. All rights reserved.</span>
+          <div className="flex items-center gap-4">
+            <Link href="/privacy" className="hover:text-neutral-300 transition-colors">Privacy Policy</Link>
+            <Link href="/terms" className="hover:text-neutral-300 transition-colors">Terms of Service</Link>
+          </div>
+        </div>
       </div>
     </footer>
   );

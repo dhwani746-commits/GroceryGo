@@ -8,13 +8,6 @@
   --foreground: #1A1A1A;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0F0F0F;
-    --foreground: #FFFFFF;
-  }
-}
-
 /* ==========================================
   TAILWIND v4 THEME TOKENS
 ========================================== */
@@ -112,4 +105,33 @@ select {
 
 button {
   @apply cursor-pointer;
+}
+
+/* ==========================================
+   UTILITIES
+========================================== */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Skip to content — accessibility */
+.skip-to-content {
+  position: absolute;
+  left: -9999px;
+  top: 1rem;
+  z-index: 9999;
+  padding: 0.5rem 1rem;
+  background: #1A5EA8;
+  color: #fff;
+  font-weight: 600;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: left 0ms;
+}
+.skip-to-content:focus {
+  left: 1rem;
 }

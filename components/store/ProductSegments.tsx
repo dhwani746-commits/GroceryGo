@@ -57,13 +57,13 @@ export function ProductSegments() {
         });
 
         // Convert to segments array (limit to 8 per segment)
-        // Only show categories with 5+ products
+        // Show all categories that have at least 1 product
         const productSegments: ProductSegment[] = Object.entries(groupedByCategory)
           .map(([category, products]) => ({
             category,
             products: products.slice(0, 8),
           }))
-          .filter((seg) => seg.products.length >= 5);
+          .filter((seg) => seg.products.length >= 1);
 
         setSegments(productSegments);
       } catch (err) {

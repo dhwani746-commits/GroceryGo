@@ -26,8 +26,8 @@ const CONTACT_INFO = [
   {
     icon: Mail,
     label: 'Email',
-    value: 'support@krishnaplastics.in',
-    href: 'mailto:support@krishnaplastics.in',
+    value: 'support@grocerygo.in',
+    href: 'mailto:support@grocerygo.in',
     color: 'text-status-success-700',
     bg: 'bg-status-success-50',
   },

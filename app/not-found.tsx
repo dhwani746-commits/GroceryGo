@@ -16,7 +16,7 @@ export default function NotFound() {
       <header className="bg-white border-b border-neutral-200 px-6 py-4 flex items-center gap-2">
         <Package size={20} className="text-brand-primary-600" />
         <Link href="/" className="text-base font-bold text-neutral-900 hover:text-brand-primary-600 transition">
-          Krishna Plastics
+          GroceryGo
         </Link>
       </header>
 
@@ -70,7 +70,7 @@ export default function NotFound() {
 
       {/* Footer strip */}
       <footer className="py-4 text-center text-md text-neutral-400 border-t border-neutral-100">
-        © {new Date().getFullYear()} Krishna Plastics. All rights reserved.
+        © {new Date().getFullYear()} GroceryGo. All rights reserved.
       </footer>
     </div>
   );

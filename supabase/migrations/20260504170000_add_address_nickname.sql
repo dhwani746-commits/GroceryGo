@@ -1,3 +1,0 @@
-ALTER TABLE public.addresses
-ADD COLUMN IF NOT EXISTS nickname TEXT NOT NULL DEFAULT 'Home';
-

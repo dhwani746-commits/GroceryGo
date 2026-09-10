@@ -15,8 +15,7 @@ async function requireAdmin() {
     .eq('id', user.id)
     .single();
 
-  // Role stored as 'admin' in database
-  return profile?.role === 'admin' ? user : null;
+  return profile?.role?.toUpperCase() === 'ADMIN' ? user : null;
 }
 
 // Generate a valid slug from a product name
@@ -58,10 +57,30 @@ export async function POST(req: Request) {
 
     const supabase = await createClient();
 
-    // 1. Gather all unique base slugs from input names
+    // 1. Extract all unique category names and ensure they exist in 'categories' table
+    const uniqueCategories = Array.from(
+      new Set(products.map((p) => p.category?.trim()).filter(Boolean))
+    );
+
+    if (uniqueCategories.length > 0) {
+      const categoryPayload = uniqueCategories.map((catName) => ({
+        name: catName,
+        slug: generateSlug(catName),
+      }));
+
+      const { error: catError } = await supabase
+        .from('categories')
+        .upsert(categoryPayload, { onConflict: 'name', ignoreDuplicates: true });
+
+      if (catError) {
+        console.error('Auto-category upsert warning:', catError);
+      }
+    }
+
+    // 2. Gather all unique base slugs from input names
     const baseSlugs = products.map((p) => generateSlug(p.name));
     
-    // 2. Fetch existing matching slugs to check conflicts
+    // 3. Fetch existing matching slugs to check conflicts
     const { data: existingProducts, error: fetchError } = await supabase
       .from('products')
       .select('slug')
@@ -101,7 +120,7 @@ export async function POST(req: Request) {
       };
     });
 
-    // 3. Batch insert products into Supabase
+    // 4. Batch insert products into Supabase
     const { data, error } = await supabase
       .from('products')
       .insert(importPayload)

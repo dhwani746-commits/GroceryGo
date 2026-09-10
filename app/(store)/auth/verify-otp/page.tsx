@@ -164,7 +164,7 @@ function VerifyOTPContent() {
               
               <div className="space-y-2">
                 <h1 className="text-3xl font-bold text-status-success-700">Email Verified!</h1>
-                <p className="text-lg text-neutral-600 font-medium">Welcome to Krishna Plastics</p>
+                <p className="text-lg text-neutral-600 font-medium">Welcome to GroceryGo</p>
                 <p className="text-neutral-500">Your email has been successfully verified and your account is now active.</p>
               </div>
               

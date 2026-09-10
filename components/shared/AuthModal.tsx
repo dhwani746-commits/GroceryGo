@@ -122,7 +122,7 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login' }: AuthModalPr
               <div>
                 <h2 className="text-xl font-bold text-brand-accent-700">Create Account</h2>
                 <p className="mt-1 text-sm text-neutral-500">
-                  Sign up to start shopping at Krishna Plastics
+                  Sign up to start shopping at GroceryGo
                 </p>
               </div>
               <AuthForm mode="register" onSuccess={onClose} />

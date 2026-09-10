@@ -90,34 +90,22 @@ export function AuthForm({ mode, isAdmin = false, onSuccess }: AuthFormProps) {
         if (signUpError) throw signUpError;
         if (data?.user) {
           console.log('User created successfully:', data.user);
-          console.log('User metadata:', data.user.user_metadata);
+          await queryClient.invalidateQueries({ queryKey: ['auth'] });
 
-          // Send OTP for email verification
-          try {
-            const otpResponse = await fetch('/api/auth/send-otp', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email }),
-            });
-
-            const otpData = await otpResponse.json();
-
-            if (!otpResponse.ok) {
-              throw new Error(otpData.error || 'Failed to send verification email');
-            }
-
-            // Redirect to OTP verification page
-            router.push(`/auth/verify-otp?email=${encodeURIComponent(email)}`);
-          } catch (otpError) {
-            console.error('OTP send error:', otpError);
-            setMessage(
-              'Account created! Please check your email to verify your account.'
-            );
+          if (data.session) {
+            setMessage('Account created successfully!');
+            onSuccess?.();
+            router.refresh();
+          } else {
+            setMessage('Account created successfully! Please sign in with your credentials.');
             setEmail('');
             setPassword('');
             setFullName('');
             setPhone('');
-            setTimeout(() => router.push('/auth/login'), 3000);
+            setTimeout(() => {
+              onSuccess?.();
+              router.push('/auth/login');
+            }, 2000);
           }
         }
       } else {

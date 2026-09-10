@@ -49,11 +49,17 @@ export class SettingsRepository {
       .maybeSingle();
 
     if (fetchError) throw fetchError;
-    if (existing) return existing as StoreSettingsRow;
+    if (existing) {
+      const row = existing as StoreSettingsRow;
+      if (row.store_name?.toLowerCase().includes('krishna') || row.store_name?.toLowerCase().includes('plastic')) {
+        return await SettingsRepository.updateOne({ store_name: 'GroceryGo' });
+      }
+      return row;
+    }
 
     const { data: inserted, error: insertError } = await supabase
       .from('store_settings')
-      .insert({ singleton: true, store_name: 'Krishna Plastics' })
+      .insert({ singleton: true, store_name: 'GroceryGo' })
       .select(STORE_SETTINGS_COLUMNS)
       .single();
 
