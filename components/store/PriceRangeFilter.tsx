@@ -62,7 +62,7 @@ export function PriceRangeFilter({
         <div className="flex-1">
           <label className="text-xs text-neutral-500 font-medium block mb-1">Min Price</label>
           <div className="flex items-center border border-neutral-300 rounded-lg bg-white">
-            <span className="px-2 text-neutral-500 text-sm">$</span>
+            <span className="px-2 text-neutral-500 text-sm">₹</span>
             <input
               type="number"
               value={localMin}
@@ -80,7 +80,7 @@ export function PriceRangeFilter({
         <div className="flex-1">
           <label className="text-xs text-neutral-500 font-medium block mb-1">Max Price</label>
           <div className="flex items-center border border-neutral-300 rounded-lg bg-white">
-            <span className="px-2 text-neutral-500 text-sm">$</span>
+            <span className="px-2 text-neutral-500 text-sm">₹</span>
             <input
               type="number"
               value={localMax}
